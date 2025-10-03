@@ -1,22 +1,3 @@
-# Godot-specific
-.import/
-.export/
+# Godot 4+ specific ignores
 .godot/
-
-# Build artifacts
-*.tmp
-*.log
-
-# OS/system files
-.DS_Store
-Thumbs.db
-
-# IDE/editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Backups
-*.bak
-*.old
+/android/
