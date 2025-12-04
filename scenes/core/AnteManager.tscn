@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://copm00ed8ee2g"]
+
+[ext_resource type="Script" uid="uid://b85s556vomp04" path="res://scripts/core/AnteManager.gd" id="1_hvj1f"]
+
+[node name="AnteManager" type="Node2D"]
+script = ExtResource("1_hvj1f")
+
+[node name="AnteInfoLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "AnteInfoLabel"
+
+[node name="NextAnteButton" type="Button" parent="."]
+offset_left = -4.0
+offset_top = 92.0
+offset_right = 131.0
+offset_bottom = 123.0
+text = "Next Ante"

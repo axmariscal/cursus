@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://cx6hrb4q40qcn"]
+
+[node name="ShopScene" type="Node2D"]
+
+[node name="Shop_Practice" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Shop / Practice"
+
+[node name="BuyButton1" type="Button" parent="."]
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 71.0
+text = "BuyButton1"
+
+[node name="BuyButton2" type="Button" parent="."]
+offset_left = -1.0
+offset_top = 87.0
+offset_right = 99.0
+offset_bottom = 118.0
+text = "BuyButton2
+"
