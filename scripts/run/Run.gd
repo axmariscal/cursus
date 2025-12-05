@@ -11,6 +11,10 @@ var race_state: RaceState = RaceState.IDLE
 @onready var ante_label: Label = $UI/VBoxContainer/AnteLabel
 @onready var progress_label: Label = $UI/VBoxContainer/ProgressLabel
 @onready var seed_label: Label = $UI/VBoxContainer/SeedLabel
+@onready var speed_label: Label = $UI/VBoxContainer/SpeedLabel
+@onready var endurance_label: Label = $UI/VBoxContainer/EnduranceLabel
+@onready var stamina_label: Label = $UI/VBoxContainer/StaminaLabel
+@onready var power_label: Label = $UI/VBoxContainer/PowerLabel
 @onready var status_label: Label = $UI/VBoxContainer/StatusLabel
 @onready var race_status_label: Label = $UI/VBoxContainer/RaceStatusLabel
 @onready var result_panel: Panel = $UI/VBoxContainer/ResultPanel
@@ -42,6 +46,12 @@ func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
 	progress_label.text = "Progress: %d / %d" % [GameManager.current_ante, GameManager.max_ante]
 	seed_label.text = "Seed: %d" % GameManager.seed
+	
+	# Update stats
+	speed_label.text = "Speed: %d" % GameManager.get_total_speed()
+	endurance_label.text = "Endurance: %d" % GameManager.get_total_endurance()
+	stamina_label.text = "Stamina: %d" % GameManager.get_total_stamina()
+	power_label.text = "Power: %d" % GameManager.get_total_power()
 	
 	if GameManager.run_active:
 		status_label.text = "Status: Run Active"

@@ -10,6 +10,10 @@ class Item:
 		category = item_category
 
 @onready var ante_label: Label = $UI/ScrollContainer/VBoxContainer/AnteLabel
+@onready var speed_label: Label = $UI/ScrollContainer/VBoxContainer/SpeedLabel
+@onready var endurance_label: Label = $UI/ScrollContainer/VBoxContainer/EnduranceLabel
+@onready var stamina_label: Label = $UI/ScrollContainer/VBoxContainer/StaminaLabel
+@onready var power_label: Label = $UI/ScrollContainer/VBoxContainer/PowerLabel
 @onready var team_count_label: Label = $UI/ScrollContainer/VBoxContainer/TeamCountLabel
 @onready var deck_count_label: Label = $UI/ScrollContainer/VBoxContainer/DeckCountLabel
 @onready var jokers_count_label: Label = $UI/ScrollContainer/VBoxContainer/JokersCountLabel
@@ -36,6 +40,14 @@ func _ready() -> void:
 
 func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
+	
+	# Update stats
+	speed_label.text = "Speed: %d" % GameManager.get_total_speed()
+	endurance_label.text = "Endurance: %d" % GameManager.get_total_endurance()
+	stamina_label.text = "Stamina: %d" % GameManager.get_total_stamina()
+	power_label.text = "Power: %d" % GameManager.get_total_power()
+	
+	# Update inventory counts
 	team_count_label.text = "Team: %d" % GameManager.team.size()
 	deck_count_label.text = "Deck: %d" % GameManager.deck.size()
 	jokers_count_label.text = "Jokers: %d" % GameManager.jokers.size()
@@ -120,9 +132,35 @@ func _display_available_items() -> void:
 func _display_items_in_container(container: VBoxContainer, items: Array[Item]) -> void:
 	for item in items:
 		var button = Button.new()
-		button.text = item.name + " (Select)"
+		
+		# Get item effect to display
+		var effect = GameManager.get_item_effect(item.name, item.category)
+		var effect_text = _format_effect_text(effect)
+		
+		button.text = item.name + "\n" + effect_text + "\n(Select)"
 		button.pressed.connect(_on_item_selected.bind(item))
 		container.add_child(button)
+
+
+func _format_effect_text(effect: Dictionary) -> String:
+	var parts: Array[String] = []
+	
+	if effect.speed > 0:
+		parts.append("+%d Speed" % effect.speed)
+	if effect.endurance > 0:
+		parts.append("+%d Endurance" % effect.endurance)
+	if effect.stamina > 0:
+		parts.append("+%d Stamina" % effect.stamina)
+	if effect.power > 0:
+		parts.append("+%d Power" % effect.power)
+	if effect.multiplier > 1.0:
+		var percent = int((effect.multiplier - 1.0) * 100)
+		parts.append("+%d%% Multiplier" % percent)
+	
+	if parts.is_empty():
+		return "No effect"
+	
+	return ", ".join(parts)
 
 func _clear_containers() -> void:
 	for child in team_container.get_children():
