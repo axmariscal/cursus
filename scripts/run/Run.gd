@@ -106,6 +106,10 @@ func _on_complete_race_pressed() -> void:
 		_set_race_state(RaceState.COMPLETED)
 		
 		print("Race completed. Now at Ante ", GameManager.current_ante)
+		
+		# Automatically transition to shop after a brief delay
+		await get_tree().create_timer(1.5).timeout
+		get_tree().change_scene_to_file("res://scenes/core/ShopScene.tscn")
 
 func _on_back_button_pressed() -> void:
 	# Return to main menu
