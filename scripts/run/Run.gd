@@ -45,7 +45,9 @@ var race_state: RaceState = RaceState.IDLE
 # Right column - Action Hub
 @onready var right_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions
 @onready var win_probability_label: Label = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/WinProbabilityLabel
-@onready var win_probability_gauge: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/WinProbabilityGauge
+@onready var gauge_container: Control = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer
+@onready var success_glow: GPUParticles2D = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer/SuccessGlow
+@onready var win_probability_gauge: TextureProgressBar = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer/WinProbabilityGauge
 @onready var start_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/StartRaceButton
 @onready var complete_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/CompleteRaceButton
 @onready var continue_to_shop_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/ContinueToShopButton
@@ -74,6 +76,11 @@ var race_state: RaceState = RaceState.IDLE
 var previous_ante: int = 1
 var last_race_result: Dictionary = {}
 var hovered_item: Dictionary = {}  # Store hovered item info for tooltip
+var current_display_prob: float = 0.0
+var previous_probability: float = 0.0
+var back_button_confirm_timer: float = 0.0
+var back_button_waiting_confirm: bool = false
+var danger_pulse_tween: Tween = null
 
 func _ready() -> void:
 	# Connect buttons
@@ -87,16 +94,9 @@ func _ready() -> void:
 	# Setup keyboard shortcuts
 	_setup_keyboard_shortcuts()
 	
-	# Update display with current run state
-	_update_display()
-	
-	# Start a new run if one isn't active
-	if not GameManager.run_active:
-		GameManager.start_new_run()
-		_update_display()
-	
-	# Initialize race state
-	_set_race_state(RaceState.IDLE)
+	# Setup Action Hub layout first
+	right_col.add_theme_constant_override("separation", 15)
+	right_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	
 	# Style panels
 	_style_panels()
@@ -107,6 +107,29 @@ func _ready() -> void:
 	# Hide tooltip initially
 	tooltip_panel.visible = false
 	purchase_feedback_label.visible = false
+	
+	# Setup particle system for success glow
+	_setup_particle_system()
+	
+	# Start a new run if one isn't active
+	if not GameManager.run_active:
+		GameManager.start_new_run()
+	
+	# Initialize race state
+	_set_race_state(RaceState.IDLE)
+	
+	# Update display with current run state
+	_update_display()
+	
+	# Initialize win probability display (after _update_display sets initial values)
+	var initial_prob = _calculate_win_probability()
+	current_display_prob = initial_prob
+	previous_probability = initial_prob
+	# Set initial value without animation
+	win_probability_gauge.value = initial_prob
+	set_label_text(initial_prob)
+	win_probability_gauge.tint_progress = _get_color_for_prob(initial_prob)
+	_update_label_color(initial_prob)
 
 func _setup_keyboard_shortcuts() -> void:
 	# ESC to go back
@@ -136,7 +159,8 @@ func _style_panels() -> void:
 	_style_progress_bar(endurance_bar, Color(0.4, 0.7, 0.4))
 	_style_progress_bar(stamina_bar, Color(0.9, 0.6, 0.3))
 	_style_progress_bar(power_bar, Color(0.9, 0.4, 0.2))
-	_style_progress_bar(win_probability_gauge, Color(0.3, 0.8, 0.4))
+	# Win probability gauge is now a TextureProgressBar, styled separately
+	_setup_win_probability_gauge()
 	
 	# Style buttons
 	_style_action_button(start_race_button, Color(0.3, 0.8, 0.4))  # Green
@@ -338,8 +362,9 @@ func _update_display() -> void:
 	# Update team composition breakdown
 	_update_team_composition()
 	
-	# Update win probability
-	_update_win_probability()
+	# Update win probability with smooth animation
+	var new_probability = _calculate_win_probability()
+	update_probability_display(new_probability)
 	
 	# Update breadcrumb
 	breadcrumb_label.text = "Main > Run"
@@ -385,23 +410,138 @@ func _update_team_composition() -> void:
 	else:
 		team_composition_label.text = "Composition: " + ", ".join(composition_parts)
 
-func _update_win_probability() -> void:
+func _calculate_win_probability() -> float:
 	# Calculate win probability based on stats vs ante difficulty
 	var player_strength = (GameManager.get_total_speed() + GameManager.get_total_endurance() + GameManager.get_total_stamina() + GameManager.get_total_power()) / 4.0
 	var opponent_strength = 50 + (GameManager.current_ante * 10)
+	return clamp((player_strength / opponent_strength) * 100, 0, 100)
+
+func _setup_win_probability_gauge() -> void:
+	# Setup the TextureProgressBar for radial display
+	# Set pivot for scaling effects (will be set properly after layout)
+	await get_tree().process_frame
+	win_probability_gauge.pivot_offset = win_probability_gauge.size / 2
+
+func _setup_particle_system() -> void:
+	# Configure the success glow particle system
+	success_glow.visible = false
+	success_glow.emitting = false
+	# Set particle color to green using modulate
+	success_glow.modulate = Color(0.3, 0.8, 0.4, 1.0)  # Green tint
+	# Configure particle behavior
+	var material = ParticleProcessMaterial.new()
+	material.gravity = Vector3(0, -50, 0)
+	material.initial_velocity_min = 50.0
+	material.initial_velocity_max = 100.0
+	material.angular_velocity_min = -180.0
+	material.angular_velocity_max = 180.0
+	material.scale_min = 0.5
+	material.scale_max = 1.0
+	success_glow.process_material = material
+
+func update_probability_display(new_val: float) -> void:
+	var duration = 0.6  # Seconds
+	var prob_increase = new_val - previous_probability
 	
-	var probability = clamp((player_strength / opponent_strength) * 100, 0, 100)
+	# 1. Create a Tween for the Gauge and the Number
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	
-	win_probability_label.text = "Win Probability: %d%%" % int(probability)
-	win_probability_gauge.value = probability
+	# Animate the gauge fill
+	tween.tween_property(win_probability_gauge, "value", new_val, duration)
 	
-	# Color code the gauge
-	if probability >= 70:
-		win_probability_gauge.modulate = Color(0.3, 0.8, 0.4)  # Green
-	elif probability >= 50:
-		win_probability_gauge.modulate = Color(0.9, 0.7, 0.2)  # Yellow
+	# Animate the number text (using a custom method to lerp the value)
+	tween.tween_method(set_label_text, current_display_prob, new_val, duration)
+	
+	# 2. Add a "Squash and Stretch" effect to the gauge for impact
+	var scale_tween = create_tween().set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	win_probability_gauge.pivot_offset = win_probability_gauge.size / 2
+	scale_tween.tween_property(win_probability_gauge, "scale", Vector2(1.1, 1.1), 0.1)
+	scale_tween.tween_property(win_probability_gauge, "scale", Vector2(1.0, 1.0), 0.3)
+	
+	# 3. Dynamic Color Shifting
+	tween.tween_property(win_probability_gauge, "tint_progress", _get_color_for_prob(new_val), duration)
+	
+	# 4. Success Glow Effect (if probability increased significantly)
+	if prob_increase >= 10.0:
+		_trigger_success_glow()
+	
+	# 5. Danger Shake and Pulsing (if probability is dangerously low)
+	if new_val < 30.0:
+		_trigger_danger_effects()
 	else:
-		win_probability_gauge.modulate = Color(0.8, 0.3, 0.3)  # Red
+		_stop_danger_effects()
+	
+	# Update label color based on probability
+	_update_label_color(new_val)
+	
+	current_display_prob = new_val
+	previous_probability = new_val
+
+func set_label_text(value: float) -> void:
+	win_probability_label.text = "Win Probability: %d%%" % int(round(value))
+
+func _get_color_for_prob(val: float) -> Color:
+	if val < 40:
+		return Color.html("#e64d4d")  # Red
+	elif val < 70:
+		return Color.html("#e6bc4d")  # Yellow/Orange
+	else:
+		return Color.html("#69b378")  # Green
+
+func _trigger_success_glow() -> void:
+	# Create particle effect for success
+	success_glow.visible = true
+	success_glow.restart()
+	success_glow.emitting = true
+	
+	# Hide after animation completes
+	var timer = get_tree().create_timer(1.0)
+	timer.timeout.connect(func(): success_glow.visible = false)
+
+func _trigger_danger_effects() -> void:
+	# Shake the gauge container
+	var shake_tween = create_tween()
+	var shake_amount = 5.0
+	var original_pos = gauge_container.position
+	
+	# Create a shake pattern
+	for i in range(8):
+		var offset = Vector2(
+			randf_range(-shake_amount, shake_amount),
+			randf_range(-shake_amount, shake_amount)
+		)
+		shake_tween.tween_property(gauge_container, "position", original_pos + offset, 0.05)
+		shake_tween.tween_property(gauge_container, "position", original_pos, 0.05)
+	
+	# Pulsing animation for the label (only if not already pulsing)
+	if not danger_pulse_tween or not danger_pulse_tween.is_valid():
+		if danger_pulse_tween:
+			danger_pulse_tween.kill()
+		
+		danger_pulse_tween = create_tween().set_loops()
+		danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 0.5, 0.5)
+		danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 1.0, 0.5)
+
+func _stop_danger_effects() -> void:
+	# Stop pulsing
+	if danger_pulse_tween:
+		danger_pulse_tween.kill()
+		danger_pulse_tween = null
+	
+	# Reset label alpha
+	win_probability_label.modulate.a = 1.0
+	
+	# Reset container position
+	var reset_tween = create_tween()
+	reset_tween.tween_property(gauge_container, "position", Vector2.ZERO, 0.2)
+
+func _update_label_color(prob: float) -> void:
+	if prob < 30:
+		win_probability_label.add_theme_color_override("font_color", Color.html("#e64d4d"))  # Red
+	elif prob < 50:
+		win_probability_label.add_theme_color_override("font_color", Color.html("#e6bc4d"))  # Yellow
+	else:
+		win_probability_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3, 1.0))  # Dark grey
 
 func _style_race_type_label() -> void:
 	# Use dark grey for all race types to match the design
@@ -545,7 +685,23 @@ func _hide_loading_screen() -> void:
 	loading_panel.visible = false
 
 func _on_back_button_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
+	if not back_button_waiting_confirm:
+		# First press - ask for confirmation
+		back_button.text = "Are you sure?"
+		back_button_waiting_confirm = true
+		back_button_confirm_timer = 2.0
+		
+		# Reset after 2 seconds if not pressed again
+		var timer = get_tree().create_timer(2.0)
+		timer.timeout.connect(_reset_back_button)
+	else:
+		# Second press - actually go back
+		get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
+
+func _reset_back_button() -> void:
+	if back_button_waiting_confirm:
+		back_button.text = "BACK TO MENU"
+		back_button_waiting_confirm = false
 
 func _display_team_tray() -> void:
 	# Clear existing team tray icons
@@ -870,6 +1026,9 @@ func _on_sell_item_pressed(item_data: Dictionary) -> void:
 		GameManager.earn_gold(sell_price)
 		_show_purchase_feedback("✓ Sold for %d Gold!" % sell_price, true)
 		_update_display()
+		# Update win probability with animation after selling
+		var new_prob = _calculate_win_probability()
+		update_probability_display(new_prob)
 	else:
 		_show_purchase_feedback("❌ Failed to sell item", false)
 
