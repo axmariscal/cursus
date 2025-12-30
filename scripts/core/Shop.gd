@@ -40,13 +40,35 @@ class Item:
 var available_items: Array[Item] = []
 
 # Simple item pools for each category
-var team_items = ["Sprinter", "Endurance Runner", "Sprint Specialist", "Marathon Runner", "Speed Demon"]
+# Common Runners (Ante 1+)
+var team_items = [
+	"Hill Specialist",
+	"Steady State Runner",
+	"Tempo Runner",
+	"The Closer",
+	"Freshman Walk-on",
+	"Track Tourist",
+	"Short-Cutter"
+]
+
 var deck_items = ["Speed Boost", "Stamina Card", "Recovery Card", "Pace Card", "Finish Strong"]
 var boost_items = ["Endurance", "Speed", "Recovery", "Pace", "Stamina"]
 var equipment_items = ["Lightweight Shoes", "Energy Gel", "Training Program", "Recovery Kit", "Performance Monitor"]
 
 # Rare item pools (appear less frequently)
-var rare_team_items = ["Elite Sprinter", "Champion Runner", "All-Star Athlete"]
+# Rare Runners (Ante 5+)
+var rare_team_items = [
+	"Elite V-State Harrier",
+	"All-Terrain Captain",
+	"Caffeine Fiend",
+	"Ghost of the Woods"
+]
+
+# Epic Runners (Ante 5+, very rare)
+var epic_team_items = [
+	"The Legend",
+	"JV Legend"
+]
 var rare_deck_items = ["Power Surge", "Final Sprint", "Victory Lap"]
 var rare_boost_items = ["Elite Training", "Peak Performance", "Champion's Edge"]
 var rare_equipment_items = ["Pro Racing Shoes", "Elite Training Kit", "Championship Gear"]
@@ -109,8 +131,11 @@ func _get_item_price(category: String, base_name: String, rarity: ItemRarity = I
 		"team":
 			base_price = 40  # Runners are expensive
 			# Special runners cost more
-			if base_name in ["Sprint Specialist", "Speed Demon", "Marathon Runner"]:
+			if base_name in ["The Closer", "Tempo Runner", "Track Tourist"]:
 				base_price = 50
+			# Freshman Walk-on is cheaper (balanced stats but low cost)
+			if base_name == "Freshman Walk-on":
+				base_price = 30
 		"deck":
 			base_price = 20  # Cards are moderate
 		"boosts":
@@ -134,6 +159,16 @@ func _get_item_price(category: String, base_name: String, rarity: ItemRarity = I
 func _get_item_rarity(category: String, base_name: String) -> ItemRarity:
 	# Determine if item is rare or epic
 	var roll = randf()
+	
+	# Check if it's an epic item by name (from epic item pools)
+	var is_epic_item = false
+	match category:
+		"team":
+			is_epic_item = base_name in epic_team_items
+	
+	if is_epic_item:
+		# Epic items are always Epic
+		return ItemRarity.EPIC
 	
 	# Check if it's a rare item by name (from rare item pools)
 	var is_rare_item = false
@@ -171,10 +206,12 @@ func _generate_available_items() -> void:
 	# Generate 2-3 items per category based on ante level
 	var items_per_category = 2 + (GameManager.current_ante / 5)
 	
-	# Team items (include rare items from ante 5+)
+	# Team items (include rare items from ante 5+, epic items from ante 8+)
 	var all_team_items = team_items.duplicate()
 	if GameManager.current_ante >= 5:
 		all_team_items.append_array(rare_team_items)
+	if GameManager.current_ante >= 8:
+		all_team_items.append_array(epic_team_items)
 	
 	var used_team_indices = []
 	for i in range(min(items_per_category, all_team_items.size())):

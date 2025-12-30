@@ -374,36 +374,52 @@ func _update_display() -> void:
 	_display_team_tray()
 
 func _update_team_composition() -> void:
-	# Count runner types
-	var sprinter_count = 0
-	var endurance_count = 0
-	var specialist_count = 0
+	# Count runner types by archetype
+	var front_runner_count = 0  # Speed/Power focused
+	var stayer_count = 0  # Endurance/Stamina focused
+	var kicker_count = 0  # Speed/Stamina focused
+	var all_around_count = 0  # Balanced
+	
+	# Front Runner archetypes (Speed/Power)
+	var front_runner_types = ["Hill Specialist", "The Closer", "Track Tourist", "Elite V-State Harrier", "Caffeine Fiend"]
+	# Stayer archetypes (Endurance/Stamina)
+	var stayer_types = ["Steady State Runner", "Ghost of the Woods"]
+	# Kicker archetypes (Speed/Stamina)
+	var kicker_types = ["Short-Cutter"]
+	# All-Around types
+	var all_around_types = ["Tempo Runner", "Freshman Walk-on", "All-Terrain Captain", "The Legend", "JV Legend"]
 	
 	for runner in GameManager.varsity_team:
 		var base_name = runner.split(":")[1].strip_edges() if ":" in runner else runner
-		if "Sprinter" in base_name or "Speed Demon" in base_name:
-			sprinter_count += 1
-		elif "Endurance" in base_name or "Marathon" in base_name:
-			endurance_count += 1
-		elif "Specialist" in base_name:
-			specialist_count += 1
+		if base_name in front_runner_types:
+			front_runner_count += 1
+		elif base_name in stayer_types:
+			stayer_count += 1
+		elif base_name in kicker_types:
+			kicker_count += 1
+		elif base_name in all_around_types:
+			all_around_count += 1
 	
 	for runner in GameManager.jv_team:
 		var base_name = runner.split(":")[1].strip_edges() if ":" in runner else runner
-		if "Sprinter" in base_name or "Speed Demon" in base_name:
-			sprinter_count += 1
-		elif "Endurance" in base_name or "Marathon" in base_name:
-			endurance_count += 1
-		elif "Specialist" in base_name:
-			specialist_count += 1
+		if base_name in front_runner_types:
+			front_runner_count += 1
+		elif base_name in stayer_types:
+			stayer_count += 1
+		elif base_name in kicker_types:
+			kicker_count += 1
+		elif base_name in all_around_types:
+			all_around_count += 1
 	
 	var composition_parts = []
-	if sprinter_count > 0:
-		composition_parts.append("%d Sprinters" % sprinter_count)
-	if endurance_count > 0:
-		composition_parts.append("%d Endurance" % endurance_count)
-	if specialist_count > 0:
-		composition_parts.append("%d Specialists" % specialist_count)
+	if front_runner_count > 0:
+		composition_parts.append("%d Front Runners" % front_runner_count)
+	if stayer_count > 0:
+		composition_parts.append("%d Stayers" % stayer_count)
+	if kicker_count > 0:
+		composition_parts.append("%d Kickers" % kicker_count)
+	if all_around_count > 0:
+		composition_parts.append("%d All-Around" % all_around_count)
 	
 	if composition_parts.is_empty():
 		team_composition_label.text = "No runners"

@@ -58,11 +58,11 @@ func _give_starting_runners():
 	# Give 5 balanced starting runners for varsity team
 	# Mix of different types for variety
 	var starting_runners = [
-		"Runner: Sprinter",
-		"Runner: Endurance Runner",
-		"Runner: Sprinter",
-		"Runner: Endurance Runner",
-		"Runner: Sprinter"
+		"Runner: Hill Specialist",
+		"Runner: Steady State Runner",
+		"Runner: Tempo Runner",
+		"Runner: The Closer",
+		"Runner: Freshman Walk-on"
 	]
 	
 	for runner in starting_runners:
@@ -185,29 +185,56 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 		"team":
 			# Runners add base stats
 			match base_name:
-				"Sprinter", "Speed Demon":
-					effect.speed = 15
-					effect.power = 5
-				"Endurance Runner", "Marathon Runner":
+				# Common Runners (Ante 1+)
+				"Hill Specialist":
+					effect.power = 15
+					effect.speed = 5
+				"Steady State Runner":
 					effect.endurance = 15
 					effect.stamina = 10
-				"Sprint Specialist":
-					effect.speed = 20
-					effect.power = 10
-				# Rare runners
-				"Elite Sprinter":
+				"Tempo Runner":
+					effect.endurance = 10
+					effect.speed = 10
+				"The Closer":
+					effect.speed = 15
+					effect.stamina = 5
+				"Freshman Walk-on":
+					effect.speed = 5
+					effect.endurance = 5
+					effect.stamina = 5
+					effect.power = 5
+				"Track Tourist":
+					effect.speed = 22
+					effect.power = -5  # Negative stat
+				"Short-Cutter":
+					effect.speed = 12
+					effect.endurance = 8
+				# Rare Runners (Ante 5+)
+				"Elite V-State Harrier":
 					effect.speed = 25
 					effect.power = 15
-				"Champion Runner":
-					effect.speed = 20
-					effect.endurance = 20
-					effect.power = 10
-				"All-Star Athlete":
+				"All-Terrain Captain":
 					effect.speed = 18
 					effect.endurance = 18
 					effect.stamina = 15
 					effect.power = 12
+				"Caffeine Fiend":
+					effect.speed = 25
+					effect.stamina = -15  # Negative stat
+				"Ghost of the Woods":
+					effect.endurance = 20
+					effect.power = 12
+				# Epic Runners (Ante 8+)
+				"The Legend":
+					effect.speed = 30
+					effect.endurance = 30
+				"JV Legend":
+					effect.speed = 10
+					effect.endurance = 10
+					effect.stamina = 10
+					effect.power = 10
 				_:
+					# Default fallback
 					effect.speed = 10
 					effect.endurance = 10
 		
@@ -548,18 +575,19 @@ func _generate_single_opponent_team(team_index: int = 0) -> Array[String]:
 	base_strength = int(base_strength * difficulty_modifier)
 	
 	# Generate 5 opponent runners
+	# Use common runner types for opponents
+	var common_runner_types = [
+		"Hill Specialist",
+		"Steady State Runner",
+		"Tempo Runner",
+		"The Closer",
+		"Track Tourist",
+		"Short-Cutter"
+	]
+	
 	for i in range(5):
-		var strength = base_strength + (randi() % 20) - 10  # ±10 variance
-		
-		# Create a runner name based on strength
-		var runner_type = ""
-		if strength < 60:
-			runner_type = "Endurance Runner"
-		elif strength < 70:
-			runner_type = "Sprinter"
-		else:
-			runner_type = "Sprint Specialist"
-		
+		# Randomly select from common runner types
+		var runner_type = common_runner_types[randi() % common_runner_types.size()]
 		opponent_team.append("Runner: " + runner_type)
 	
 	return opponent_team
