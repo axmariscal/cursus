@@ -37,6 +37,11 @@ layout_mode = 2
 text = "Ante: 1"
 horizontal_alignment = 1
 
+[node name="RaceTypeLabel" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+text = "Race Type: Dual Meet"
+horizontal_alignment = 1
+
 [node name="ProgressLabel" type="Label" parent="UI/VBoxContainer"]
 layout_mode = 2
 text = "Progress: 1 / 20"

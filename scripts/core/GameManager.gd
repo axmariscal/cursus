@@ -3,8 +3,17 @@ extends Node
 # High-level game/run state manager
 # This persists the entire run, similar to Balatro's RunManager
 
+enum RaceType {
+	DUAL_MEET,      # 2 teams (player + 1 opponent)
+	TRI_MEET,       # 3 teams (player + 2 opponents)
+	INVITATIONAL,   # 4-6 teams (player + 3-5 opponents)
+	QUALIFIERS,     # 8-10 teams (player + 7-9 opponents)
+	CHAMPIONSHIP    # 12+ teams (player + 11+ opponents)
+}
+
 var current_ante := 1
 var max_ante := 20
+var current_race_type: RaceType = RaceType.DUAL_MEET
 
 # Team structure: 5 varsity + 2 JV
 var varsity_team = []    # 5 varsity runners (main scoring team)
@@ -30,6 +39,7 @@ func start_new_run():
 	seed = randi()
 	randomize()
 	current_ante = 1
+	current_race_type = get_race_type_for_ante(current_ante)
 	run_active = true
 	gold = 100  # Starting gold
 	varsity_team.clear()
@@ -41,7 +51,7 @@ func start_new_run():
 	# Give starting runners (5 basic varsity runners)
 	_give_starting_runners()
 	
-	print("New run started with seed: ", seed, " Gold: ", gold)
+	print("New run started with seed: ", seed, " Gold: ", gold, " Race Type: ", get_race_type_name())
 
 
 func _give_starting_runners():
@@ -63,7 +73,54 @@ func _give_starting_runners():
 
 func advance_ante():
 	current_ante += 1
-	print("Advanced to ante ", current_ante)
+	# Update race type for new ante
+	current_race_type = get_race_type_for_ante(current_ante)
+	print("Advanced to ante ", current_ante, " Race Type: ", _get_race_type_name(current_race_type))
+
+# ============================================
+# RACE TYPE SYSTEM
+# ============================================
+
+func get_race_type_for_ante(ante: int) -> RaceType:
+	# Determine race type based on ante with some randomness
+	# Use seed for deterministic but varied results
+	seed(seed + ante * 100)
+	
+	var base_type: RaceType
+	if ante <= 5:
+		# Early antes: Dual/Tri Meets
+		base_type = RaceType.DUAL_MEET if randf() < 0.6 else RaceType.TRI_MEET
+	elif ante <= 12:
+		# Mid antes: Invitationals
+		base_type = RaceType.INVITATIONAL
+	elif ante <= 19:
+		# Late antes: Qualifiers
+		base_type = RaceType.QUALIFIERS
+	else:
+		# Final ante: Championship
+		base_type = RaceType.CHAMPIONSHIP
+	
+	# Restore global RNG
+	randomize()
+	return base_type
+
+func _get_race_type_name(race_type: RaceType) -> String:
+	match race_type:
+		RaceType.DUAL_MEET:
+			return "Dual Meet"
+		RaceType.TRI_MEET:
+			return "Tri Meet"
+		RaceType.INVITATIONAL:
+			return "Invitational"
+		RaceType.QUALIFIERS:
+			return "Qualifiers"
+		RaceType.CHAMPIONSHIP:
+			return "Championship"
+		_:
+			return "Unknown"
+
+func get_race_type_name() -> String:
+	return _get_race_type_name(current_race_type)
 
 # ============================================
 # CURRENCY SYSTEM
@@ -398,12 +455,26 @@ func calculate_runner_performance(runner_name: String, is_player: bool = true) -
 	return final_performance
 
 
-# Generate an opponent team for the race
-func generate_opponent_team() -> Array[String]:
+# Generate a single opponent team
+func _generate_single_opponent_team(team_index: int = 0) -> Array[String]:
 	var opponent_team: Array[String] = []
 	
-	# Base opponent strength scales with ante
+	# Base opponent strength scales with ante and race type
 	var base_strength = 50 + (current_ante * 10)
+	
+	# Championship races have stronger opponents
+	var difficulty_modifier = 1.0
+	match current_race_type:
+		RaceType.CHAMPIONSHIP:
+			difficulty_modifier = 1.3  # 30% stronger
+		RaceType.QUALIFIERS:
+			difficulty_modifier = 1.2  # 20% stronger
+		RaceType.INVITATIONAL:
+			difficulty_modifier = 1.1  # 10% stronger
+		_:
+			difficulty_modifier = 1.0
+	
+	base_strength = int(base_strength * difficulty_modifier)
 	
 	# Generate 5 opponent runners
 	for i in range(5):
@@ -422,15 +493,37 @@ func generate_opponent_team() -> Array[String]:
 	
 	return opponent_team
 
+# Generate all opponent teams based on race type
+func generate_opponent_teams() -> Array[Array]:
+	var opponent_teams: Array[Array] = []
+	var num_opponents = 0
+	
+	match current_race_type:
+		RaceType.DUAL_MEET:
+			num_opponents = 1
+		RaceType.TRI_MEET:
+			num_opponents = 2
+		RaceType.INVITATIONAL:
+			num_opponents = 3 + randi() % 3  # 3-5 opponents
+		RaceType.QUALIFIERS:
+			num_opponents = 6 + randi() % 4  # 6-9 opponents
+		RaceType.CHAMPIONSHIP:
+			num_opponents = 10 + randi() % 5  # 10-14 opponents
+	
+	for i in range(num_opponents):
+		opponent_teams.append(_generate_single_opponent_team(i))
+	
+	return opponent_teams
+
 
 # Simulate a race and return results
-# Returns: Dictionary with player_positions, opponent_positions, player_score, opponent_score, won
+# Returns: Dictionary with player_positions, team_scores, placement, won, race_type
 func simulate_race() -> Dictionary:
 	# Use seed for deterministic race results
 	seed(seed + current_ante * 1000)
 	
-	# Generate opponent team
-	var opponent_team = generate_opponent_team()
+	# Generate all opponent teams based on race type
+	var opponent_teams = generate_opponent_teams()
 	
 	# Calculate performance for all runners
 	var all_runners: Array[Dictionary] = []
@@ -441,57 +534,110 @@ func simulate_race() -> Dictionary:
 		all_runners.append({
 			"name": runner,
 			"performance": performance,
-			"is_player": true
+			"team_id": "player",
+			"team_index": -1  # -1 for player
 		})
 	
-	# Add opponent runners
-	for runner in opponent_team:
-		var performance = calculate_runner_performance(runner, false)
-		all_runners.append({
-			"name": runner,
-			"performance": performance,
-			"is_player": false
-		})
+	# Add opponent runners from all teams
+	for team_index in range(opponent_teams.size()):
+		var opponent_team = opponent_teams[team_index]
+		for runner in opponent_team:
+			var performance = calculate_runner_performance(runner, false)  # false = is opponent
+			all_runners.append({
+				"name": runner,
+				"performance": performance,
+				"team_id": "opponent",
+				"team_index": team_index
+			})
 	
 	# Sort by performance (lower = better finish)
 	all_runners.sort_custom(func(a, b): return a.performance < b.performance)
 	
-	# Assign positions
+	# Assign positions and track by team
 	var player_positions: Array[int] = []
-	var opponent_positions: Array[int] = []
+	var team_positions: Dictionary = {}  # team_index -> [positions]
 	
+	# Initialize team positions
+	team_positions[-1] = []  # Player team
+	for i in range(opponent_teams.size()):
+		team_positions[i] = []
+	
+	# Assign positions
 	for i in range(all_runners.size()):
 		var position = i + 1  # 1st, 2nd, 3rd, etc.
-		if all_runners[i].is_player:
+		var team_index = all_runners[i].team_index
+		
+		if team_index == -1:
 			player_positions.append(position)
 		else:
-			opponent_positions.append(position)
+			if not team_positions.has(team_index):
+				team_positions[team_index] = []
+			team_positions[team_index].append(position)
 	
 	# Calculate team scores (sum of top 5 positions, lower = better)
 	player_positions.sort()
-	opponent_positions.sort()
-	
 	var player_score = 0
-	var opponent_score = 0
-	
-	# Sum top 5 positions for each team
 	for i in range(min(5, player_positions.size())):
 		player_score += player_positions[i]
 	
-	for i in range(min(5, opponent_positions.size())):
-		opponent_score += opponent_positions[i]
+	# Calculate scores for all opponent teams
+	var team_scores: Array[Dictionary] = []
+	for team_index in range(opponent_teams.size()):
+		if team_positions.has(team_index):
+			var positions = team_positions[team_index]
+			positions.sort()
+			var score = 0
+			for i in range(min(5, positions.size())):
+				score += positions[i]
+			team_scores.append({
+				"team_index": team_index,
+				"score": score,
+				"positions": positions
+			})
 	
-	# Determine winner (lower score wins)
-	var won = player_score < opponent_score
+	# Add player score to comparison
+	team_scores.append({
+		"team_index": -1,
+		"score": player_score,
+		"positions": player_positions,
+		"is_player": true
+	})
+	
+	# Sort teams by score (lower = better)
+	team_scores.sort_custom(func(a, b): return a.score < b.score)
+	
+	# Find player's placement
+	var player_placement = 0
+	for i in range(team_scores.size()):
+		if team_scores[i].has("is_player") and team_scores[i].is_player:
+			player_placement = i + 1  # 1st, 2nd, 3rd, etc.
+			break
+	
+	# Determine win condition
+	# For small meets (Dual/Tri), must be 1st
+	# For larger meets, top 3 is acceptable
+	var won = false
+	match current_race_type:
+		RaceType.DUAL_MEET, RaceType.TRI_MEET:
+			won = player_placement == 1
+		RaceType.INVITATIONAL:
+			won = player_placement <= 2  # Top 2
+		RaceType.QUALIFIERS:
+			won = player_placement <= 3  # Top 3
+		RaceType.CHAMPIONSHIP:
+			won = player_placement <= 3  # Top 3
 	
 	# Restore global RNG state
 	randomize()
 	
 	return {
 		"player_positions": player_positions,
-		"opponent_positions": opponent_positions,
 		"player_score": player_score,
-		"opponent_score": opponent_score,
+		"team_scores": team_scores,  # All teams with scores
+		"player_placement": player_placement,
 		"won": won,
+		"race_type": current_race_type,
+		"race_type_name": get_race_type_name(),
+		"total_teams": team_scores.size(),
 		"all_runners": all_runners  # For detailed display
 	}

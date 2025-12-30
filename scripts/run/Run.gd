@@ -9,6 +9,7 @@ enum RaceState {
 var race_state: RaceState = RaceState.IDLE
 
 @onready var ante_label: Label = $UI/VBoxContainer/AnteLabel
+@onready var race_type_label: Label = $UI/VBoxContainer/RaceTypeLabel
 @onready var progress_label: Label = $UI/VBoxContainer/ProgressLabel
 @onready var seed_label: Label = $UI/VBoxContainer/SeedLabel
 @onready var gold_label: Label = $UI/VBoxContainer/GoldLabel
@@ -57,6 +58,9 @@ func _ready() -> void:
 
 func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
+	race_type_label.text = "Race Type: %s" % GameManager.get_race_type_name()
+	# Style race type based on type
+	_style_race_type_label()
 	progress_label.text = "Progress: %d / %d" % [GameManager.current_ante, GameManager.max_ante]
 	seed_label.text = "Seed: %d" % GameManager.seed
 	gold_label.text = "Gold: %d" % GameManager.get_gold()
@@ -144,9 +148,13 @@ func _on_start_race_pressed() -> void:
 			_set_race_state(RaceState.IDLE)
 			return
 		
+		# Update race type for current ante
+		GameManager.current_race_type = GameManager.get_race_type_for_ante(GameManager.current_ante)
+		_update_display()  # Update UI to show race type
+		
 		previous_ante = GameManager.current_ante
 		_set_race_state(RaceState.RACING)
-		print("Race started for Ante ", GameManager.current_ante)
+		print("Race started for Ante ", GameManager.current_ante, " - ", GameManager.get_race_type_name())
 
 func _on_complete_race_pressed() -> void:
 	if race_state == RaceState.RACING:
@@ -165,6 +173,9 @@ func _on_complete_race_pressed() -> void:
 		# Build result message
 		var result_message = ""
 		
+		# Show race type
+		result_message += "--- %s ---\n\n" % race_result.race_type_name
+		
 		if race_result.won:
 			result_message += "✓ VICTORY!\n\n"
 			# Advance ante on win
@@ -179,10 +190,25 @@ func _on_complete_race_pressed() -> void:
 			GameManager.run_active = false
 		
 		result_message += "--- RACE RESULTS ---\n\n"
-		result_message += "Your Team Score: %d\n" % race_result.player_score
-		result_message += "Opponent Score: %d\n\n" % race_result.opponent_score
+		result_message += "Total Teams: %d\n" % race_result.total_teams
+		result_message += "Your Placement: %d%s\n\n" % [race_result.player_placement, _get_position_suffix(race_result.player_placement)]
 		
-		# Show top 5 positions
+		# Show top 3 team scores
+		result_message += "Top Team Scores:\n"
+		for i in range(min(3, race_result.team_scores.size())):
+			var team = race_result.team_scores[i]
+			var team_label = ""
+			if team.has("is_player") and team.is_player:
+				team_label = "You"
+			else:
+				team_label = "Team %d" % (team.team_index + 1)
+			
+			var placement_suffix = _get_position_suffix(i + 1)
+			result_message += "  %d%s: %s (Score: %d)\n" % [i + 1, placement_suffix, team_label, team.score]
+		
+		result_message += "\n"
+		
+		# Show player's top 5 positions
 		result_message += "Your Top 5 Finishes:\n"
 		for i in range(min(5, race_result.player_positions.size())):
 			var pos = race_result.player_positions[i]
@@ -207,7 +233,14 @@ func _on_complete_race_pressed() -> void:
 		# Set state to completed
 		_set_race_state(RaceState.COMPLETED)
 		
-		print("Race completed. Won: ", race_result.won, " Score: ", race_result.player_score, " vs ", race_result.opponent_score)
+		# Find best opponent score for comparison
+		var best_opponent_score = 999
+		for team in race_result.team_scores:
+			if not team.has("is_player") or not team.is_player:
+				if team.score < best_opponent_score:
+					best_opponent_score = team.score
+		
+		print("Race completed. Won: ", race_result.won, " Placement: ", race_result.player_placement, "/", race_result.total_teams, " Score: ", race_result.player_score, " (Best Opponent: ", best_opponent_score, ")")
 		
 		# Don't automatically transition - wait for button click
 		if not race_result.won:
@@ -475,7 +508,21 @@ func _execute_sell(item_name: String, item_type: String, team_type: String, inde
 	
 	print("Sold %s for %d gold" % [item_name, sell_price])
 
+func _style_race_type_label() -> void:
+	# Color code race types
+	match GameManager.current_race_type:
+		GameManager.RaceType.DUAL_MEET:
+			race_type_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))  # Light blue
+		GameManager.RaceType.TRI_MEET:
+			race_type_label.add_theme_color_override("font_color", Color(0.7, 0.9, 0.7))  # Light green
+		GameManager.RaceType.INVITATIONAL:
+			race_type_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.7))  # Light yellow
+		GameManager.RaceType.QUALIFIERS:
+			race_type_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.7))  # Light red
+		GameManager.RaceType.CHAMPIONSHIP:
+			race_type_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.9))  # Light purple
+			race_type_label.add_theme_font_sizes_override("font_size", 18)  # Slightly larger for championship
+
 func _on_back_button_pressed() -> void:
 	# Return to main menu
 	get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
-
