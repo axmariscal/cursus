@@ -81,9 +81,9 @@ layout_mode = 2
 text = "Deck: 0"
 horizontal_alignment = 1
 
-[node name="JokersCountLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+[node name="BoostsCountLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "Jokers: 0"
+text = "Boosts: 0"
 horizontal_alignment = 1
 
 [node name="EquipmentCountLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
@@ -121,15 +121,15 @@ horizontal_alignment = 1
 [node name="DeckItemsContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/DeckSection"]
 layout_mode = 2
 
-[node name="JokersSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+[node name="BoostsSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="JokersHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/JokersSection"]
+[node name="BoostsHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/BoostsSection"]
 layout_mode = 2
-text = "--- JOKERS (Modifiers) ---"
+text = "--- BOOSTS (Modifiers) ---"
 horizontal_alignment = 1
 
-[node name="JokersItemsContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/JokersSection"]
+[node name="BoostsItemsContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/BoostsSection"]
 layout_mode = 2
 
 [node name="EquipmentSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
