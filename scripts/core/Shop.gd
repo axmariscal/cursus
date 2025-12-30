@@ -521,4 +521,3 @@ func _show_purchase_feedback(message: String) -> void:
 func _on_continue_pressed() -> void:
 	# Return to Run scene
 	get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
-

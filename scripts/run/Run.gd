@@ -512,9 +512,8 @@ func _on_complete_race_pressed() -> void:
 		_update_display()
 		_set_race_state(RaceState.COMPLETED)
 		
-		if not race_result.won:
-			await get_tree().create_timer(3.0).timeout
-			get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
+		# Removed auto-return to main menu - player can now view results as long as they want
+		# They can manually return using the back button or ESC key
 
 func _get_position_suffix(position: int) -> String:
 	match position:
