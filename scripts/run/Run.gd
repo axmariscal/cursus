@@ -11,6 +11,7 @@ var race_state: RaceState = RaceState.IDLE
 @onready var ante_label: Label = $UI/VBoxContainer/AnteLabel
 @onready var progress_label: Label = $UI/VBoxContainer/ProgressLabel
 @onready var seed_label: Label = $UI/VBoxContainer/SeedLabel
+@onready var gold_label: Label = $UI/VBoxContainer/GoldLabel
 @onready var speed_label: Label = $UI/VBoxContainer/SpeedLabel
 @onready var endurance_label: Label = $UI/VBoxContainer/EnduranceLabel
 @onready var stamina_label: Label = $UI/VBoxContainer/StaminaLabel
@@ -54,6 +55,7 @@ func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
 	progress_label.text = "Progress: %d / %d" % [GameManager.current_ante, GameManager.max_ante]
 	seed_label.text = "Seed: %d" % GameManager.seed
+	gold_label.text = "Gold: %d" % GameManager.get_gold()
 	
 	# Update stats
 	speed_label.text = "Speed: %d" % GameManager.get_total_speed()
@@ -160,6 +162,10 @@ func _on_complete_race_pressed() -> void:
 			result_message += "✓ VICTORY!\n\n"
 			# Advance ante on win
 			GameManager.advance_ante()
+			# Award gold for winning
+			var gold_reward = GameManager.calculate_race_reward()
+			GameManager.earn_gold(gold_reward)
+			result_message += "Gold Earned: +%d\n\n" % gold_reward
 		else:
 			result_message += "✗ DEFEAT\n\n"
 			# End run on loss

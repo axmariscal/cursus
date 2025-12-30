@@ -16,6 +16,9 @@ var shop_inventory = []  # practice/shop selections (equipment)
 var seed = 0             # run RNG seed
 var run_active := false
 
+# Currency
+var gold := 100          # Starting gold for new runs
+
 # Base stats
 var base_speed := 10
 var base_endurance := 10
@@ -28,6 +31,7 @@ func start_new_run():
 	randomize()
 	current_ante = 1
 	run_active = true
+	gold = 100  # Starting gold
 	varsity_team.clear()
 	jv_team.clear()
 	deck.clear()
@@ -37,7 +41,7 @@ func start_new_run():
 	# Give starting runners (5 basic varsity runners)
 	_give_starting_runners()
 	
-	print("New run started with seed: ", seed)
+	print("New run started with seed: ", seed, " Gold: ", gold)
 
 
 func _give_starting_runners():
@@ -60,6 +64,30 @@ func _give_starting_runners():
 func advance_ante():
 	current_ante += 1
 	print("Advanced to ante ", current_ante)
+
+# ============================================
+# CURRENCY SYSTEM
+# ============================================
+
+func earn_gold(amount: int) -> void:
+	gold += amount
+	print("Earned %d gold. Total: %d" % [amount, gold])
+
+func spend_gold(amount: int) -> bool:
+	if gold >= amount:
+		gold -= amount
+		print("Spent %d gold. Remaining: %d" % [amount, gold])
+		return true
+	print("Not enough gold! Need %d, have %d" % [amount, gold])
+	return false
+
+func get_gold() -> int:
+	return gold
+
+func calculate_race_reward() -> int:
+	# Base reward: 25 gold + (ante * 5)
+	# Early races give less, later races give more
+	return 25 + (current_ante * 5)
 
 
 # Get item effect - returns a dictionary with stat bonuses

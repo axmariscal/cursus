@@ -4,12 +4,15 @@ extends Control
 class Item:
 	var name: String
 	var category: String  # "team", "deck", "boosts", "equipment"
+	var price: int        # Gold cost
 	
-	func _init(item_name: String, item_category: String):
+	func _init(item_name: String, item_category: String, item_price: int = 0):
 		name = item_name
 		category = item_category
+		price = item_price
 
 @onready var ante_label: Label = $UI/ScrollContainer/VBoxContainer/AnteLabel
+@onready var gold_label: Label = $UI/ScrollContainer/VBoxContainer/GoldLabel
 @onready var speed_label: Label = $UI/ScrollContainer/VBoxContainer/SpeedLabel
 @onready var endurance_label: Label = $UI/ScrollContainer/VBoxContainer/EnduranceLabel
 @onready var stamina_label: Label = $UI/ScrollContainer/VBoxContainer/StaminaLabel
@@ -42,6 +45,7 @@ func _ready() -> void:
 
 func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
+	gold_label.text = "Gold: %d" % GameManager.get_gold()
 	
 	# Update stats
 	speed_label.text = "Speed: %d" % GameManager.get_total_speed()
@@ -55,6 +59,26 @@ func _update_display() -> void:
 	deck_count_label.text = "Deck: %d" % GameManager.deck.size()
 	boosts_count_label.text = "Boosts: %d" % GameManager.jokers.size()
 	equipment_count_label.text = "Equipment: %d" % GameManager.shop_inventory.size()
+
+func _get_item_price(category: String, base_name: String) -> int:
+	# Base prices by category
+	var base_price = 0
+	match category:
+		"team":
+			base_price = 40  # Runners are expensive
+			# Special runners cost more
+			if base_name in ["Sprint Specialist", "Speed Demon", "Marathon Runner"]:
+				base_price = 50
+		"deck":
+			base_price = 20  # Cards are moderate
+		"boosts":
+			base_price = 50  # Boosts are expensive (powerful)
+		"equipment":
+			base_price = 30  # Equipment is moderate
+	
+	# Scale price with ante (later antes = slightly more expensive)
+	var ante_modifier = 1.0 + (GameManager.current_ante * 0.05)  # 5% increase per ante
+	return int(base_price * ante_modifier)
 
 func _generate_available_items() -> void:
 	available_items.clear()
@@ -74,7 +98,8 @@ func _generate_available_items() -> void:
 			index = randi() % team_items.size()
 		used_team_indices.append(index)
 		var item_name = team_items[index]
-		available_items.append(Item.new("Runner: " + item_name, "team"))
+		var price = _get_item_price("team", item_name)
+		available_items.append(Item.new("Runner: " + item_name, "team", price))
 	
 	# Deck items
 	var used_deck_indices = []
@@ -84,13 +109,15 @@ func _generate_available_items() -> void:
 			index = randi() % deck_items.size()
 		used_deck_indices.append(index)
 		var item_name = deck_items[index]
-		available_items.append(Item.new("Card: " + item_name, "deck"))
+		var price = _get_item_price("deck", item_name)
+		available_items.append(Item.new("Card: " + item_name, "deck", price))
 	
 	# Boost items (rarer, appear from ante 3+)
 	if GameManager.current_ante >= 3:
 		var index = randi() % boost_items.size()
 		var item_name = boost_items[index]
-		available_items.append(Item.new("Boost: " + item_name, "boosts"))
+		var price = _get_item_price("boosts", item_name)
+		available_items.append(Item.new("Boost: " + item_name, "boosts", price))
 	
 	# Equipment items
 	var used_equipment_indices = []
@@ -100,7 +127,8 @@ func _generate_available_items() -> void:
 			index = randi() % equipment_items.size()
 		used_equipment_indices.append(index)
 		var item_name = equipment_items[index]
-		available_items.append(Item.new("Equipment: " + item_name, "equipment"))
+		var price = _get_item_price("equipment", item_name)
+		available_items.append(Item.new("Equipment: " + item_name, "equipment", price))
 	
 	# Restore global RNG state
 	randomize()
@@ -140,15 +168,24 @@ func _display_items_in_container(container: VBoxContainer, items: Array[Item]) -
 		var effect = GameManager.get_item_effect(item.name, item.category)
 		var effect_text = _format_effect_text(effect)
 		
-		button.text = item.name + "\n" + effect_text + "\n(Select)"
+		# Check if player can afford
+		var can_afford = GameManager.get_gold() >= item.price
+		var price_text = "%d Gold" % item.price
+		if not can_afford:
+			price_text = "[Not Enough Gold] " + price_text
+		
+		button.text = item.name + "\n" + effect_text + "\n" + price_text + "\n(Select)"
 		button.pressed.connect(_on_item_selected.bind(item))
 		
+		# Disable button if can't afford
+		button.disabled = not can_afford
+		
 		# Style buttons based on category for visual distinction
-		_style_item_button(button, item.category)
+		_style_item_button(button, item.category, can_afford)
 		
 		container.add_child(button)
 
-func _style_item_button(button: Button, category: String) -> void:
+func _style_item_button(button: Button, category: String, can_afford: bool = true) -> void:
 	var style_normal = StyleBoxFlat.new()
 	style_normal.corner_radius_top_left = 5
 	style_normal.corner_radius_top_right = 5
@@ -167,35 +204,54 @@ func _style_item_button(button: Button, category: String) -> void:
 	style_pressed.corner_radius_bottom_right = 5
 	style_pressed.corner_radius_bottom_left = 5
 	
+	var style_disabled = StyleBoxFlat.new()
+	style_disabled.corner_radius_top_left = 5
+	style_disabled.corner_radius_top_right = 5
+	style_disabled.corner_radius_bottom_right = 5
+	style_disabled.corner_radius_bottom_left = 5
+	
 	match category:
 		"team":
 			# Runners: Blue background to distinguish from cards
 			style_normal.bg_color = Color(0.3, 0.5, 0.8, 0.7)  # Light blue, semi-transparent
 			style_hover.bg_color = Color(0.3, 0.5, 0.8, 0.9)
 			style_pressed.bg_color = Color(0.2, 0.4, 0.7, 0.9)
+			style_disabled.bg_color = Color(0.2, 0.2, 0.3, 0.5)  # Dark gray when can't afford
 			button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			if not can_afford:
+				button.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.6, 1))
 		"deck":
 			# Cards: Green background
 			style_normal.bg_color = Color(0.4, 0.7, 0.4, 0.7)  # Light green, semi-transparent
 			style_hover.bg_color = Color(0.4, 0.7, 0.4, 0.9)
 			style_pressed.bg_color = Color(0.3, 0.6, 0.3, 0.9)
+			style_disabled.bg_color = Color(0.2, 0.3, 0.2, 0.5)
 			button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			if not can_afford:
+				button.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.6, 1))
 		"boosts":
 			# Boosts: Purple background
 			style_normal.bg_color = Color(0.7, 0.4, 0.8, 0.7)  # Light purple
 			style_hover.bg_color = Color(0.7, 0.4, 0.8, 0.9)
 			style_pressed.bg_color = Color(0.6, 0.3, 0.7, 0.9)
+			style_disabled.bg_color = Color(0.3, 0.2, 0.3, 0.5)
 			button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			if not can_afford:
+				button.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.6, 1))
 		"equipment":
 			# Equipment: Orange background
 			style_normal.bg_color = Color(0.9, 0.6, 0.3, 0.7)  # Light orange
 			style_hover.bg_color = Color(0.9, 0.6, 0.3, 0.9)
 			style_pressed.bg_color = Color(0.8, 0.5, 0.2, 0.9)
+			style_disabled.bg_color = Color(0.3, 0.2, 0.1, 0.5)
 			button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			if not can_afford:
+				button.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.6, 1))
 	
 	button.add_theme_stylebox_override("normal", style_normal)
 	button.add_theme_stylebox_override("hover", style_hover)
 	button.add_theme_stylebox_override("pressed", style_pressed)
+	button.add_theme_stylebox_override("disabled", style_disabled)
 
 
 func _format_effect_text(effect: Dictionary) -> String:
@@ -229,6 +285,16 @@ func _clear_containers() -> void:
 		child.queue_free()
 
 func _on_item_selected(item: Item) -> void:
+	# Check if player can afford the item
+	if GameManager.get_gold() < item.price:
+		print("Not enough gold! Need %d, have %d" % [item.price, GameManager.get_gold()])
+		return
+	
+	# Spend gold
+	if not GameManager.spend_gold(item.price):
+		print("Failed to purchase item: ", item.name)
+		return
+	
 	# Add item to appropriate GameManager array
 	match item.category:
 		"team":
@@ -259,8 +325,9 @@ func _on_item_selected(item: Item) -> void:
 			available_items.remove_at(i)
 			break
 	
-	# Update display
+	# Update display (this will refresh gold and stats)
 	_update_display()
+	# Redisplay items (this will update button states based on new gold amount)
 	_display_available_items()
 
 func _on_continue_pressed() -> void:
