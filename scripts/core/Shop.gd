@@ -332,8 +332,65 @@ func _get_rarity_color(rarity: ItemRarity) -> Color:
 			return Color(0.9, 0.5, 0.1)  # Orange/Gold
 	return Color.WHITE
 
+func _get_card_texture(item_name: String, category: String) -> Texture2D:
+	# Extract base name (remove prefix like "Runner: ", "Card: ", etc.)
+	var base_name = item_name
+	if ":" in item_name:
+		base_name = item_name.split(":")[1].strip_edges()
+	
+	# Convert name to file path format (lowercase, spaces to underscores)
+	var file_name = base_name.to_lower().replace(" ", "_")
+	
+	# Handle special cases for file names that don't match exactly
+	var file_name_map = {
+		"freshman_walk-on": "walkon_rnr",  # Handle the actual file name
+		"the_closer": "closer",  # In case it's named differently
+		"track_tourist": "track_tourist",
+		"short-cutter": "short_cutter",
+	}
+	
+	if file_name_map.has(file_name):
+		file_name = file_name_map[file_name]
+	
+	# Build path based on category
+	var image_path = ""
+	match category:
+		"team":
+			image_path = "res://assets/art/cards/runners/%s.png" % file_name
+		"deck":
+			image_path = "res://assets/art/cards/deck/%s.png" % file_name
+		"boosts":
+			image_path = "res://assets/art/cards/boosts/%s.png" % file_name
+		"equipment":
+			image_path = "res://assets/art/cards/equipment/%s.png" % file_name
+	
+	# Try to load the texture
+	if ResourceLoader.exists(image_path):
+		return load(image_path) as Texture2D
+	
+	# Return null if image doesn't exist (will just show button without image)
+	return null
+
 func _display_items_in_container(container: VBoxContainer, items: Array[Item]) -> void:
 	for item in items:
+		# Create a container for the card image and button
+		var item_container = VBoxContainer.new()
+		item_container.custom_minimum_size = Vector2(200, 350)
+		item_container.add_theme_constant_override("separation", 5)
+		
+		# Try to load card image
+		var card_texture = _get_card_texture(item.name, item.category)
+		if card_texture:
+			var texture_rect = TextureRect.new()
+			texture_rect.texture = card_texture
+			texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			texture_rect.custom_minimum_size = Vector2(180, 250)
+			texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			item_container.add_child(texture_rect)
+		else:
+			# If no image, add a placeholder or just show the button
+			pass
+		
 		var button = Button.new()
 		
 		# Get item effect to display
@@ -353,7 +410,12 @@ func _display_items_in_container(container: VBoxContainer, items: Array[Item]) -
 		if inventory_full:
 			price_text = "[Inventory Full] " + price_text
 		
-		button.text = item.name + "\n" + rarity_text + "\n" + effect_text + "\n" + price_text + "\n(Select)"
+		# Simplify button text if we have an image
+		if card_texture:
+			button.text = rarity_text + "\n" + effect_text + "\n" + price_text + "\n(Select)"
+		else:
+			button.text = item.name + "\n" + rarity_text + "\n" + effect_text + "\n" + price_text + "\n(Select)"
+		
 		button.pressed.connect(_on_item_selected.bind(item))
 		
 		# Disable button if can't afford or inventory is full
@@ -362,7 +424,8 @@ func _display_items_in_container(container: VBoxContainer, items: Array[Item]) -
 		# Style buttons based on category and rarity for visual distinction
 		_style_item_button(button, item.category, can_afford and not inventory_full, item.rarity)
 		
-		container.add_child(button)
+		item_container.add_child(button)
+		container.add_child(item_container)
 
 func _style_item_button(button: Button, category: String, can_afford: bool = true, rarity: ItemRarity = ItemRarity.COMMON) -> void:
 	var style_normal = StyleBoxFlat.new()

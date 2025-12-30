@@ -719,63 +719,183 @@ func _reset_back_button() -> void:
 		back_button.text = "BACK TO MENU"
 		back_button_waiting_confirm = false
 
+func _get_card_texture_for_tray(item_name: String, category: String) -> Texture2D:
+	# Extract base name (remove prefix like "Runner: ", "Card: ", etc.)
+	var base_name = item_name
+	if ":" in item_name:
+		base_name = item_name.split(":")[1].strip_edges()
+	
+	# Convert name to file path format (lowercase, spaces to underscores)
+	var file_name = base_name.to_lower().replace(" ", "_")
+	
+	# Handle special cases for file names that don't match exactly
+	var file_name_map = {
+		"freshman_walk-on": "walkon_rnr",
+		"the_closer": "closer_rnr",
+		"track_tourist": "track_tourist",
+		"short-cutter": "short_cutter",
+	}
+	
+	if file_name_map.has(file_name):
+		file_name = file_name_map[file_name]
+	
+	# Build path based on category
+	var image_path = ""
+	match category:
+		"team":
+			image_path = "res://assets/art/cards/runners/%s.png" % file_name
+		"deck":
+			image_path = "res://assets/art/cards/deck/%s.png" % file_name
+		"boosts":
+			image_path = "res://assets/art/cards/boosts/%s.png" % file_name
+		"equipment":
+			image_path = "res://assets/art/cards/equipment/%s.png" % file_name
+	
+	# Try to load the texture
+	if ResourceLoader.exists(image_path):
+		return load(image_path) as Texture2D
+	
+	# Return null if image doesn't exist
+	return null
+
 func _display_team_tray() -> void:
 	# Clear existing team tray icons
 	for child in team_tray.get_children(): child.queue_free()
 	
 	# Display Varsity runners (5 slots)
 	for i in range(5):
-		var button = Button.new()
+		var container = VBoxContainer.new()
+		container.custom_minimum_size = Vector2(120, 160)
+		container.add_theme_constant_override("separation", 2)
+		
 		if i < GameManager.varsity_team.size():
 			var runner_name = GameManager.varsity_team[i]
 			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
-			button.text = "V%d\n%s" % [i + 1, base_name.split(" ")[0] if " " in base_name else base_name]
-			button.tooltip_text = runner_name
-			_style_team_tray_button(button, true)
+			
+			# Get runner effect for hover functionality
+			var effect = GameManager.get_item_effect(runner_name, "team")
+			var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": true}
+			
+			# Try to load card image
+			var card_texture = _get_card_texture_for_tray(runner_name, "team")
+			if card_texture:
+				var texture_rect = TextureRect.new()
+				texture_rect.texture = card_texture
+				texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				texture_rect.custom_minimum_size = Vector2(110, 140)
+				texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let mouse events pass through to container
+				container.add_child(texture_rect)
+			
+			# Add label with slot number
+			var label = Label.new()
+			label.text = "V%d" % [i + 1]
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			label.add_theme_font_size_override("font_size", 12)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let mouse events pass through to container
+			container.add_child(label)
+			
+			# Create tooltip
+			var tooltip = _create_tooltip_text(runner_name, "team", effect, 0)  # No sell price in tray
+			container.tooltip_text = tooltip
+			
+			# Connect hover events for stat deltas
+			container.mouse_entered.connect(_on_item_hovered.bind(item_data, effect))
+			container.mouse_exited.connect(_on_item_unhovered)
+			
+			_style_team_tray_container(container, true)
 		else:
-			button.text = "V%d\nEmpty" % [i + 1]
-			button.disabled = true
-			_style_team_tray_button(button, true, true)
-		button.custom_minimum_size = Vector2(64, 64)
-		team_tray.call_deferred("add_child", button)
+			# Empty slot
+			var label = Label.new()
+			label.text = "V%d\nEmpty" % [i + 1]
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+			container.add_child(label)
+			_style_team_tray_container(container, true, true)
+		
+		team_tray.call_deferred("add_child", container)
 	
 	# Display JV runners (2 slots)
 	for i in range(2):
-		var button = Button.new()
+		var container = VBoxContainer.new()
+		container.custom_minimum_size = Vector2(120, 160)
+		container.add_theme_constant_override("separation", 2)
+		
 		if i < GameManager.jv_team.size():
 			var runner_name = GameManager.jv_team[i]
 			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
-			button.text = "JV%d\n%s" % [i + 1, base_name.split(" ")[0] if " " in base_name else base_name]
-			button.tooltip_text = runner_name
-			_style_team_tray_button(button, false)
+			
+			# Get runner effect for hover functionality
+			var effect = GameManager.get_item_effect(runner_name, "team")
+			var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": false}
+			
+			# Try to load card image
+			var card_texture = _get_card_texture_for_tray(runner_name, "team")
+			if card_texture:
+				var texture_rect = TextureRect.new()
+				texture_rect.texture = card_texture
+				texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				texture_rect.custom_minimum_size = Vector2(110, 140)
+				texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let mouse events pass through to container
+				container.add_child(texture_rect)
+			
+			# Add label with slot number
+			var label = Label.new()
+			label.text = "JV%d" % [i + 1]
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			label.add_theme_font_size_override("font_size", 12)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let mouse events pass through to container
+			container.add_child(label)
+			
+			# Create tooltip
+			var tooltip = _create_tooltip_text(runner_name, "team", effect, 0)  # No sell price in tray
+			container.tooltip_text = tooltip
+			
+			# Connect hover events for stat deltas
+			container.mouse_entered.connect(_on_item_hovered.bind(item_data, effect))
+			container.mouse_exited.connect(_on_item_unhovered)
+			
+			_style_team_tray_container(container, false)
 		else:
-			button.text = "JV%d\nEmpty" % [i + 1]
-			button.disabled = true
-			_style_team_tray_button(button, false, true)
-		button.custom_minimum_size = Vector2(64, 64)
-		team_tray.call_deferred("add_child", button)
+			# Empty slot
+			var label = Label.new()
+			label.text = "JV%d\nEmpty" % [i + 1]
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+			container.add_child(label)
+			_style_team_tray_container(container, false, true)
+		
+		team_tray.call_deferred("add_child", container)
 
-func _style_team_tray_button(button: Button, is_varsity: bool, is_empty: bool = false) -> void:
-	var style = StyleBoxFlat.new()
-	style.corner_radius_top_left = 30
-	style.corner_radius_top_right = 30
-	style.corner_radius_bottom_right = 30
-	style.corner_radius_bottom_left = 30
+func _style_team_tray_container(container: VBoxContainer, is_varsity: bool, is_empty: bool = false) -> void:
+	# Ensure container can receive mouse events for hover
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	# Add a subtle background color to the container using a ColorRect
+	var bg = ColorRect.new()
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let clicks pass through
+	bg.z_index = -1  # Behind other elements
 	
 	if is_empty:
-		style.bg_color = Color(0.5, 0.5, 0.5, 0.3)
-		button.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		bg.color = Color(0.5, 0.5, 0.5, 0.2)
 	else:
 		if is_varsity:
-			style.bg_color = Color(0.2, 0.5, 0.8, 0.8)  # Blue for varsity
+			bg.color = Color(0.2, 0.5, 0.8, 0.2)  # Light blue for varsity
 		else:
-			style.bg_color = Color(0.6, 0.4, 0.8, 0.8)  # Purple for JV
-		button.add_theme_color_override("font_color", Color(1, 1, 1))
+			bg.color = Color(0.6, 0.4, 0.8, 0.2)  # Light purple for JV
 	
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_stylebox_override("hover", style)
-	button.add_theme_stylebox_override("pressed", style)
-	button.add_theme_stylebox_override("disabled", style)
+	# Make bg fill the container
+	bg.anchors_preset = Control.PRESET_FULL_RECT
+	bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bg.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	container.add_child(bg)
+	container.move_child(bg, 0)  # Move to back
 
 func _display_inventory() -> void:
 	# Clear existing items
@@ -884,7 +1004,8 @@ func _create_tooltip_text(item_name: String, category: String, effect: Dictionar
 		var percent = int((effect.multiplier - 1.0) * 100)
 		tooltip += "  Multiplier: +%d%%\n" % percent
 	
-	tooltip += "\nSell Price: %d Gold" % sell_price
+	if sell_price > 0:
+		tooltip += "\nSell Price: %d Gold" % sell_price
 	return tooltip
 
 func _on_item_hovered(item_data: Dictionary, effect: Dictionary) -> void:
