@@ -91,6 +91,66 @@ horizontal_alignment = 1
 [node name="HSeparatorTeam" type="HSeparator" parent="UI/VBoxContainer"]
 layout_mode = 2
 
+[node name="InventoryLabel" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+text = "--- INVENTORY ---"
+horizontal_alignment = 1
+
+[node name="InventoryScroll" type="ScrollContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+
+[node name="InventoryContainer" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RunnersSection" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer"]
+layout_mode = 2
+
+[node name="RunnersHeader" type="Label" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/RunnersSection"]
+layout_mode = 2
+text = "Runners:"
+horizontal_alignment = 0
+
+[node name="RunnersContainer" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/RunnersSection"]
+layout_mode = 2
+
+[node name="DeckSection" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer"]
+layout_mode = 2
+
+[node name="DeckHeader" type="Label" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/DeckSection"]
+layout_mode = 2
+text = "Deck:"
+horizontal_alignment = 0
+
+[node name="DeckContainer" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/DeckSection"]
+layout_mode = 2
+
+[node name="BoostsSection" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer"]
+layout_mode = 2
+
+[node name="BoostsHeader" type="Label" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/BoostsSection"]
+layout_mode = 2
+text = "Boosts:"
+horizontal_alignment = 0
+
+[node name="BoostsContainer" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/BoostsSection"]
+layout_mode = 2
+
+[node name="EquipmentSection" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer"]
+layout_mode = 2
+
+[node name="EquipmentHeader" type="Label" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/EquipmentSection"]
+layout_mode = 2
+text = "Equipment:"
+horizontal_alignment = 0
+
+[node name="EquipmentContainer" type="VBoxContainer" parent="UI/VBoxContainer/InventoryScroll/InventoryContainer/EquipmentSection"]
+layout_mode = 2
+
+[node name="HSeparatorInventory" type="HSeparator" parent="UI/VBoxContainer"]
+layout_mode = 2
+
 [node name="StatusLabel" type="Label" parent="UI/VBoxContainer"]
 layout_mode = 2
 text = "Status: Ready"

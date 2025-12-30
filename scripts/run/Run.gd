@@ -17,6 +17,10 @@ var race_state: RaceState = RaceState.IDLE
 @onready var stamina_label: Label = $UI/VBoxContainer/StaminaLabel
 @onready var power_label: Label = $UI/VBoxContainer/PowerLabel
 @onready var team_info_label: Label = $UI/VBoxContainer/TeamInfoLabel
+@onready var runners_container: VBoxContainer = $UI/VBoxContainer/InventoryScroll/InventoryContainer/RunnersSection/RunnersContainer
+@onready var deck_container: VBoxContainer = $UI/VBoxContainer/InventoryScroll/InventoryContainer/DeckSection/DeckContainer
+@onready var boosts_container: VBoxContainer = $UI/VBoxContainer/InventoryScroll/InventoryContainer/BoostsSection/BoostsContainer
+@onready var equipment_container: VBoxContainer = $UI/VBoxContainer/InventoryScroll/InventoryContainer/EquipmentSection/EquipmentContainer
 @onready var status_label: Label = $UI/VBoxContainer/StatusLabel
 @onready var race_status_label: Label = $UI/VBoxContainer/RaceStatusLabel
 @onready var result_panel: Panel = $UI/VBoxContainer/ResultPanel
@@ -71,6 +75,9 @@ func _update_display() -> void:
 		status_label.text = "Status: Run Active"
 	else:
 		status_label.text = "Status: No Active Run"
+	
+	# Update inventory display
+	_update_inventory_display()
 
 func _set_race_state(new_state: RaceState) -> void:
 	race_state = new_state
@@ -241,6 +248,232 @@ func _show_loading_screen(message: String) -> void:
 
 func _hide_loading_screen() -> void:
 	loading_panel.visible = false
+
+func _update_inventory_display() -> void:
+	# Clear all containers
+	_clear_inventory_containers()
+	
+	# Display runners (varsity + JV)
+	_display_runners()
+	
+	# Display deck cards
+	_display_deck()
+	
+	# Display boosts
+	_display_boosts()
+	
+	# Display equipment
+	_display_equipment()
+
+func _clear_inventory_containers() -> void:
+	for child in runners_container.get_children():
+		child.queue_free()
+	for child in deck_container.get_children():
+		child.queue_free()
+	for child in boosts_container.get_children():
+		child.queue_free()
+	for child in equipment_container.get_children():
+		child.queue_free()
+
+func _display_runners() -> void:
+	# Display varsity runners
+	for i in range(GameManager.varsity_team.size()):
+		var runner = GameManager.varsity_team[i]
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var effect = GameManager.get_item_effect(runner, "team")
+		var label = _create_item_label("V%d: %s" % [i + 1, runner], effect)
+		hbox.add_child(label)
+		
+		var sell_button = Button.new()
+		sell_button.text = "Sell"
+		sell_button.custom_minimum_size = Vector2(60, 30)
+		# Disable if selling would leave < 5 varsity runners
+		# If we have exactly 5, we can't sell any (would leave 4)
+		# If we have 6+, we can sell (would leave 5+)
+		if GameManager.varsity_team.size() <= 5:
+			sell_button.disabled = true
+			sell_button.tooltip_text = "Need at least 5 varsity runners"
+		sell_button.pressed.connect(_on_sell_runner.bind("varsity", i))
+		hbox.add_child(sell_button)
+		
+		runners_container.add_child(hbox)
+	
+	# Display JV runners
+	for i in range(GameManager.jv_team.size()):
+		var runner = GameManager.jv_team[i]
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var effect = GameManager.get_item_effect(runner, "team")
+		var label = _create_item_label("JV%d: %s" % [i + 1, runner], effect)
+		hbox.add_child(label)
+		
+		var sell_button = Button.new()
+		sell_button.text = "Sell"
+		sell_button.custom_minimum_size = Vector2(60, 30)
+		sell_button.pressed.connect(_on_sell_runner.bind("jv", i))
+		hbox.add_child(sell_button)
+		
+		runners_container.add_child(hbox)
+
+func _display_deck() -> void:
+	for i in range(GameManager.deck.size()):
+		var card = GameManager.deck[i]
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var effect = GameManager.get_item_effect(card, "deck")
+		var label = _create_item_label(card, effect)
+		hbox.add_child(label)
+		
+		var sell_button = Button.new()
+		sell_button.text = "Sell"
+		sell_button.custom_minimum_size = Vector2(60, 30)
+		sell_button.pressed.connect(_on_sell_deck.bind(i))
+		hbox.add_child(sell_button)
+		
+		deck_container.add_child(hbox)
+
+func _display_boosts() -> void:
+	for i in range(GameManager.jokers.size()):
+		var boost = GameManager.jokers[i]
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var effect = GameManager.get_item_effect(boost, "boosts")
+		var label = _create_item_label(boost, effect)
+		hbox.add_child(label)
+		
+		var sell_button = Button.new()
+		sell_button.text = "Sell"
+		sell_button.custom_minimum_size = Vector2(60, 30)
+		sell_button.pressed.connect(_on_sell_boost.bind(i))
+		hbox.add_child(sell_button)
+		
+		boosts_container.add_child(hbox)
+
+func _display_equipment() -> void:
+	for i in range(GameManager.shop_inventory.size()):
+		var equipment = GameManager.shop_inventory[i]
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var effect = GameManager.get_item_effect(equipment, "equipment")
+		var label = _create_item_label(equipment, effect)
+		hbox.add_child(label)
+		
+		var sell_button = Button.new()
+		sell_button.text = "Sell"
+		sell_button.custom_minimum_size = Vector2(60, 30)
+		sell_button.pressed.connect(_on_sell_equipment.bind(i))
+		hbox.add_child(sell_button)
+		
+		equipment_container.add_child(hbox)
+
+func _create_item_label(text: String, effect: Dictionary) -> Label:
+	var label = Label.new()
+	var effect_parts: Array[String] = []
+	
+	if effect.speed > 0:
+		effect_parts.append("Spd:%d" % effect.speed)
+	if effect.endurance > 0:
+		effect_parts.append("End:%d" % effect.endurance)
+	if effect.stamina > 0:
+		effect_parts.append("Sta:%d" % effect.stamina)
+	if effect.power > 0:
+		effect_parts.append("Pow:%d" % effect.power)
+	if effect.multiplier > 1.0:
+		var percent = int((effect.multiplier - 1.0) * 100)
+		effect_parts.append("+%d%%" % percent)
+	
+	var effect_text = ""
+	if not effect_parts.is_empty():
+		effect_text = " (" + ", ".join(effect_parts) + ")"
+	
+	label.text = text + effect_text
+	label.horizontal_alignment = 0
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return label
+
+func _on_sell_runner(team_type: String, index: int) -> void:
+	var runner_name = ""
+	var sell_price = 0
+	
+	if team_type == "varsity":
+		if index >= 0 and index < GameManager.varsity_team.size():
+			# Safety check: can't sell if it would leave < 5 varsity runners
+			if GameManager.varsity_team.size() <= 5:
+				_show_result_display("❌ Cannot sell!\n\nYou need at least 5 varsity runners.")
+				return
+			runner_name = GameManager.varsity_team[index]
+			sell_price = 20  # 50% of base price (40 gold)
+	else:  # jv
+		if index >= 0 and index < GameManager.jv_team.size():
+			runner_name = GameManager.jv_team[index]
+			sell_price = 20
+	
+	if runner_name != "":
+		_confirm_sell(runner_name, "runner", team_type, index, sell_price)
+
+func _on_sell_deck(index: int) -> void:
+	if index >= 0 and index < GameManager.deck.size():
+		var card_name = GameManager.deck[index]
+		var sell_price = 10  # 50% of base price (20 gold)
+		_confirm_sell(card_name, "deck", "", index, sell_price)
+
+func _on_sell_boost(index: int) -> void:
+	if index >= 0 and index < GameManager.jokers.size():
+		var boost_name = GameManager.jokers[index]
+		var sell_price = 25  # 50% of base price (50 gold)
+		_confirm_sell(boost_name, "boost", "", index, sell_price)
+
+func _on_sell_equipment(index: int) -> void:
+	if index >= 0 and index < GameManager.shop_inventory.size():
+		var equipment_name = GameManager.shop_inventory[index]
+		var sell_price = 15  # 50% of base price (30 gold)
+		_confirm_sell(equipment_name, "equipment", "", index, sell_price)
+
+func _confirm_sell(item_name: String, item_type: String, team_type: String, index: int, sell_price: int) -> void:
+	# Execute sell immediately (simple approach)
+	# In a full implementation, you could add a confirmation dialog
+	_execute_sell(item_name, item_type, team_type, index, sell_price)
+
+func _execute_sell(item_name: String, item_type: String, team_type: String, index: int, sell_price: int) -> void:
+	# Remove item and give gold
+	match item_type:
+		"runner":
+			if team_type == "varsity":
+				if index >= 0 and index < GameManager.varsity_team.size():
+					GameManager.remove_varsity_runner(index)
+			else:  # jv
+				if index >= 0 and index < GameManager.jv_team.size():
+					GameManager.remove_jv_runner(index)
+		"deck":
+			if index >= 0 and index < GameManager.deck.size():
+				GameManager.deck.remove_at(index)
+		"boost":
+			if index >= 0 and index < GameManager.jokers.size():
+				GameManager.jokers.remove_at(index)
+		"equipment":
+			if index >= 0 and index < GameManager.shop_inventory.size():
+				GameManager.shop_inventory.remove_at(index)
+	
+	# Give gold
+	GameManager.earn_gold(sell_price)
+	
+	# Show confirmation message
+	_show_result_display("Sold %s\n+%d Gold" % [item_name, sell_price])
+	
+	# Update display
+	_update_display()
+	
+	# Clear message after 1 second
+	await get_tree().create_timer(1.0).timeout
+	_clear_result_display()
+	
+	print("Sold %s for %d gold" % [item_name, sell_price])
 
 func _on_back_button_pressed() -> void:
 	# Return to main menu
