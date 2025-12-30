@@ -11,299 +11,411 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_run")
 
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.949, 0.918, 0.843, 1)
+
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="BreadcrumbLabel" type="Label" parent="UI"]
+[node name="MainContainer" type="MarginContainer" parent="UI"]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 0.0
-anchor_top = 0.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 300.0
-offset_bottom = 30.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "Main > Run"
-horizontal_alignment = 0
-
-[node name="HeaderContainer" type="HBoxContainer" parent="UI"]
-layout_mode = 1
-anchors_preset = 10
-anchor_left = 0.5
-anchor_top = 0.0
-anchor_right = 0.5
-anchor_bottom = 0.0
-offset_left = -400.0
-offset_top = 10.0
-offset_right = 400.0
-offset_bottom = 50.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="MainVBox" type="VBoxContainer" parent="UI/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HeaderBar" type="PanelContainer" parent="UI/MainContainer/MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+
+[node name="HeaderMargin" type="MarginContainer" parent="UI/MainContainer/MainVBox/HeaderBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 10
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin"]
+layout_mode = 2
 alignment = 1
 
-[node name="AnteLabel" type="Label" parent="UI/HeaderContainer"]
+[node name="GoldContainer" type="HBoxContainer" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "🏆 Ante: 1/20"
+
+[node name="GoldIcon" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/GoldContainer"]
+layout_mode = 2
+text = "💰"
 horizontal_alignment = 1
 
-[node name="RaceTypeLabel" type="Label" parent="UI/HeaderContainer"]
+[node name="GoldLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/GoldContainer"]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Race: Dual Meet"
-horizontal_alignment = 1
-
-[node name="SeedLabel" type="Label" parent="UI/HeaderContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Seed: 0"
-horizontal_alignment = 1
-
-[node name="GoldLabel" type="Label" parent="UI/HeaderContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "💰 Gold: 100"
-horizontal_alignment = 1
-
-[node name="MainContainer" type="HBoxContainer" parent="UI"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 60.0
-offset_bottom = -60.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="StatsPanel" type="Panel" parent="UI/MainContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(250, 0)
-
-[node name="StatsVBox" type="VBoxContainer" parent="UI/MainContainer/StatsPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="StatsHeader" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "TEAM STATS"
-horizontal_alignment = 1
-
-[node name="HSeparatorStats" type="HSeparator" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-
-[node name="SpeedLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "⚡ Speed: 10"
+text = "Gold: 100"
 horizontal_alignment = 0
 
-[node name="EnduranceLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "🏔️ Endurance: 10"
-horizontal_alignment = 0
-
-[node name="StaminaLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "💪 Stamina: 10"
-horizontal_alignment = 0
-
-[node name="PowerLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "🔥 Power: 10"
-horizontal_alignment = 0
-
-[node name="HSeparatorTeam" type="HSeparator" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-
-[node name="TeamInfoLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "Team: 0 Varsity, 0 JV"
-horizontal_alignment = 0
-
-[node name="TeamCompositionLabel" type="Label" parent="UI/MainContainer/StatsPanel/StatsVBox"]
-layout_mode = 2
-text = "Composition: None"
-horizontal_alignment = 0
-
-[node name="InventoryPanel" type="Panel" parent="UI/MainContainer"]
+[node name="Spacer1" type="Control" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 5
 
-[node name="InventoryScroll" type="ScrollContainer" parent="UI/MainContainer/InventoryPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="InventoryVBox" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll"]
+[node name="CenterInfo" type="VBoxContainer" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="InventoryHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="RaceTypeLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+text = "Race: Dual Meet"
+horizontal_alignment = 1
+
+[node name="SeedLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo"]
+layout_mode = 2
+text = "Seed: 0"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 5
+
+[node name="AnteContainer" type="HBoxContainer" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AnteIcon" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/AnteContainer"]
+layout_mode = 2
+text = "🏆"
+horizontal_alignment = 1
+
+[node name="AnteLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/AnteContainer"]
+layout_mode = 2
+text = "Ante: 1/20"
+horizontal_alignment = 0
+
+[node name="ContentBody" type="HBoxContainer" parent="UI/MainContainer/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftCol_Stats" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+
+[node name="StatsHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "TEAM STATS"
+horizontal_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="SpeedContainer" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="SpeedRow" type="HBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer"]
+layout_mode = 2
+
+[node name="SpeedIcon" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow"]
+layout_mode = 2
+text = "⚡"
+horizontal_alignment = 1
+
+[node name="SpeedLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Speed: 55"
+horizontal_alignment = 0
+
+[node name="SpeedDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow"]
+layout_mode = 2
+text = "+0"
+horizontal_alignment = 0
+
+[node name="SpeedBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 55.0
+show_percentage = false
+
+[node name="EnduranceContainer" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="EnduranceRow" type="HBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer"]
+layout_mode = 2
+
+[node name="EnduranceIcon" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow"]
+layout_mode = 2
+text = "🏔️"
+horizontal_alignment = 1
+
+[node name="EnduranceLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Endurance: 40"
+horizontal_alignment = 0
+
+[node name="EnduranceDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow"]
+layout_mode = 2
+text = "+0"
+horizontal_alignment = 0
+
+[node name="EnduranceBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 40.0
+show_percentage = false
+
+[node name="StaminaContainer" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="StaminaRow" type="HBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer"]
+layout_mode = 2
+
+[node name="StaminaIcon" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow"]
+layout_mode = 2
+text = "💪"
+horizontal_alignment = 1
+
+[node name="StaminaLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Stamina: 30"
+horizontal_alignment = 0
+
+[node name="StaminaDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow"]
+layout_mode = 2
+text = "+0"
+horizontal_alignment = 0
+
+[node name="StaminaBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 30.0
+show_percentage = false
+
+[node name="PowerContainer" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="PowerRow" type="HBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer"]
+layout_mode = 2
+
+[node name="PowerIcon" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow"]
+layout_mode = 2
+text = "🔥"
+horizontal_alignment = 1
+
+[node name="PowerLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Power: 25"
+horizontal_alignment = 0
+
+[node name="PowerDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow"]
+layout_mode = 2
+text = "+0"
+horizontal_alignment = 0
+
+[node name="PowerBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 25.0
+show_percentage = false
+
+[node name="HSeparator2" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+
+[node name="TeamTrayLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+text = "TEAM TRAY"
+horizontal_alignment = 1
+
+[node name="TeamTray" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(200, 80)
+
+[node name="TeamInfoLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+text = "Team: 5 Varsity, 0 JV"
+horizontal_alignment = 1
+
+[node name="TeamCompositionLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+layout_mode = 2
+text = "Composition: None"
+horizontal_alignment = 1
+
+[node name="VSeparator1" type="VSeparator" parent="UI/MainContainer/MainVBox/ContentBody"]
+layout_mode = 2
+
+[node name="MidCol_Inventory" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
+layout_mode = 2
+size_flags_horizontal = 5
+size_flags_stretch_ratio = 2.0
+
+[node name="InventoryHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "INVENTORY"
 horizontal_alignment = 1
 
-[node name="HSeparatorInventory" type="HSeparator" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="HSeparator3" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory"]
 layout_mode = 2
 
-[node name="VarsitySection" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="InventoryScroll" type="ScrollContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 0)
+
+[node name="InventoryVBox" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VarsitySection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
 layout_mode = 2
 
-[node name="VarsityHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/VarsitySection"]
+[node name="VarsityHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/VarsitySection"]
 layout_mode = 2
 text = "Varsity Runners (5)"
 horizontal_alignment = 0
 
-[node name="VarsityRunnersContainer" type="HBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/VarsitySection"]
-layout_mode = 2
-alignment = 1
-
-[node name="JVSection" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="VarsityRunnersContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/VarsitySection"]
 layout_mode = 2
 
-[node name="JVHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/JVSection"]
+[node name="JVSection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
+layout_mode = 2
+
+[node name="JVHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/JVSection"]
 layout_mode = 2
 text = "JV Runners (2)"
 horizontal_alignment = 0
 
-[node name="JVRunnersContainer" type="HBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/JVSection"]
-layout_mode = 2
-alignment = 1
-
-[node name="DeckSection" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="JVRunnersContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/JVSection"]
 layout_mode = 2
 
-[node name="DeckHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/DeckSection"]
+[node name="DeckSection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
+layout_mode = 2
+
+[node name="DeckHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/DeckSection"]
 layout_mode = 2
 text = "Deck Cards"
 horizontal_alignment = 0
 
-[node name="DeckItemsContainer" type="HBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/DeckSection"]
+[node name="DeckGrid" type="GridContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/DeckSection"]
 layout_mode = 2
-alignment = 1
+columns = 4
 
-[node name="BoostsSection" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="BoostsSection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
 layout_mode = 2
 
-[node name="BoostsHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/BoostsSection"]
+[node name="BoostsHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/BoostsSection"]
 layout_mode = 2
 text = "Boosts"
 horizontal_alignment = 0
 
-[node name="BoostsItemsContainer" type="HBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/BoostsSection"]
-layout_mode = 2
-alignment = 1
-
-[node name="EquipmentSection" type="VBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox"]
+[node name="BoostsContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/BoostsSection"]
 layout_mode = 2
 
-[node name="EquipmentHeader" type="Label" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/EquipmentSection"]
+[node name="EquipmentSection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
+layout_mode = 2
+
+[node name="EquipmentHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/EquipmentSection"]
 layout_mode = 2
 text = "Equipment"
 horizontal_alignment = 0
 
-[node name="EquipmentItemsContainer" type="HBoxContainer" parent="UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/EquipmentSection"]
+[node name="EquipmentContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/EquipmentSection"]
 layout_mode = 2
-alignment = 1
 
-[node name="ActionPanel" type="Panel" parent="UI/MainContainer"]
+[node name="VSeparator2" type="VSeparator" parent="UI/MainContainer/MainVBox/ContentBody"]
+layout_mode = 2
+
+[node name="RightCol_Actions" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(250, 0)
+size_flags_stretch_ratio = 1.0
 
-[node name="ActionVBox" type="VBoxContainer" parent="UI/MainContainer/ActionPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ActionHeader" type="Label" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="ActionHeader" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "ACTION HUB"
 horizontal_alignment = 1
 
-[node name="HSeparatorAction" type="HSeparator" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="HSeparator4" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 
-[node name="WinProbabilityLabel" type="Label" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="WinProbabilityLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 text = "Win Probability: 50%"
 horizontal_alignment = 1
 
-[node name="WinProbabilityGauge" type="ProgressBar" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="WinProbabilityGauge" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 max_value = 100.0
 value = 50.0
 show_percentage = false
 
-[node name="HSeparatorWinProb" type="HSeparator" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="HSeparator5" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 
-[node name="StartRaceButton" type="Button" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="StartRaceButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 50)
 text = "START RACE"
 
-[node name="CompleteRaceButton" type="Button" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="CompleteRaceButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 50)
 disabled = true
 text = "COMPLETE RACE"
 
-[node name="ContinueToShopButton" type="Button" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="ContinueToShopButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 50)
 visible = false
 text = "CONTINUE TO SHOP"
 
-[node name="HSeparatorActions" type="HSeparator" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="HSeparator6" type="HSeparator" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 
-[node name="ViewTeamButton" type="Button" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="ViewTeamButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 40)
 text = "VIEW TEAM"
 
-[node name="BackButton" type="Button" parent="UI/MainContainer/ActionPanel/ActionVBox"]
+[node name="BackButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 40)
 text = "BACK TO MENU"
 
-[node name="BottomActionBar" type="HBoxContainer" parent="UI"]
+[node name="FooterSpace" type="Control" parent="UI/MainContainer/MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+
+[node name="BreadcrumbLabel" type="Label" parent="UI/MainContainer/MainVBox/FooterSpace"]
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -50.0
+anchors_preset = 1
+anchor_left = 0.0
+anchor_top = 0.0
+offset_left = 0.0
+offset_top = 0.0
 offset_right = 200.0
-offset_bottom = -10.0
-grow_horizontal = 2
+offset_bottom = 30.0
+grow_horizontal = 0
 grow_vertical = 0
-alignment = 1
+text = "Main > Run"
+horizontal_alignment = 0
 
 [node name="ResultPanel" type="Panel" parent="UI"]
 layout_mode = 1
@@ -320,7 +432,7 @@ grow_horizontal = 2
 grow_vertical = 2
 visible = false
 
-[node name="ResultLabel" type="Label" parent="UI/ResultPanel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ResultPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -331,10 +443,19 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ResultLabel" type="Label" parent="UI/ResultPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
 text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="CloseButton" type="Button" parent="UI/ResultPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Close"
 
 [node name="LoadingPanel" type="Panel" parent="UI"]
 layout_mode = 1

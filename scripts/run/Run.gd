@@ -9,51 +9,53 @@ enum RaceState {
 var race_state: RaceState = RaceState.IDLE
 
 # Header elements
-@onready var header_container: HBoxContainer = $UI/HeaderContainer
-@onready var ante_label: Label = $UI/HeaderContainer/AnteLabel
-@onready var race_type_label: Label = $UI/HeaderContainer/RaceTypeLabel
-@onready var seed_label: Label = $UI/HeaderContainer/SeedLabel
-@onready var gold_label: Label = $UI/HeaderContainer/GoldLabel
+@onready var header_hbox: HBoxContainer = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox
+@onready var gold_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/GoldContainer/GoldLabel
+@onready var race_type_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo/RaceTypeLabel
+@onready var seed_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo/SeedLabel
+@onready var ante_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/AnteContainer/AnteLabel
 
-# Main content area
-@onready var main_container: HBoxContainer = $UI/MainContainer
+# Left column - Team Stats
+@onready var left_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats
+@onready var speed_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow/SpeedLabel
+@onready var speed_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow/SpeedDelta
+@onready var speed_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedBar
+@onready var endurance_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow/EnduranceLabel
+@onready var endurance_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow/EnduranceDelta
+@onready var endurance_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceBar
+@onready var stamina_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow/StaminaLabel
+@onready var stamina_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow/StaminaDelta
+@onready var stamina_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaBar
+@onready var power_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow/PowerLabel
+@onready var power_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow/PowerDelta
+@onready var power_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerBar
+@onready var team_tray: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamTray
+@onready var team_info_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamInfoLabel
+@onready var team_composition_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamCompositionLabel
 
-# Left panel - Team Stats
-@onready var stats_panel: Panel = $UI/MainContainer/StatsPanel
-@onready var stats_vbox: VBoxContainer = $UI/MainContainer/StatsPanel/StatsVBox
-@onready var speed_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/SpeedLabel
-@onready var endurance_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/EnduranceLabel
-@onready var stamina_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/StaminaLabel
-@onready var power_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/PowerLabel
-@onready var team_info_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/TeamInfoLabel
-@onready var team_composition_label: Label = $UI/MainContainer/StatsPanel/StatsVBox/TeamCompositionLabel
+# Middle column - Inventory
+@onready var mid_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory
+@onready var inventory_vbox: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox
+@onready var varsity_runners_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/VarsitySection/VarsityRunnersContainer
+@onready var jv_runners_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/JVSection/JVRunnersContainer
+@onready var deck_grid: GridContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/DeckSection/DeckGrid
+@onready var boosts_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/BoostsSection/BoostsContainer
+@onready var equipment_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/EquipmentSection/EquipmentContainer
 
-# Center panel - Inventory
-@onready var inventory_panel: Panel = $UI/MainContainer/InventoryPanel
-@onready var inventory_scroll: ScrollContainer = $UI/MainContainer/InventoryPanel/InventoryScroll
-@onready var inventory_vbox: VBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox
-@onready var varsity_runners_container: HBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/VarsitySection/VarsityRunnersContainer
-@onready var jv_runners_container: HBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/JVSection/JVRunnersContainer
-@onready var deck_items_container: HBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/DeckSection/DeckItemsContainer
-@onready var boosts_items_container: HBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/BoostsSection/BoostsItemsContainer
-@onready var equipment_items_container: HBoxContainer = $UI/MainContainer/InventoryPanel/InventoryScroll/InventoryVBox/EquipmentSection/EquipmentItemsContainer
-
-# Right panel - Action Hub
-@onready var action_panel: Panel = $UI/MainContainer/ActionPanel
-@onready var win_probability_label: Label = $UI/MainContainer/ActionPanel/ActionVBox/WinProbabilityLabel
-@onready var win_probability_gauge: ProgressBar = $UI/MainContainer/ActionPanel/ActionVBox/WinProbabilityGauge
-@onready var start_race_button: Button = $UI/MainContainer/ActionPanel/ActionVBox/StartRaceButton
-@onready var complete_race_button: Button = $UI/MainContainer/ActionPanel/ActionVBox/CompleteRaceButton
-@onready var continue_to_shop_button: Button = $UI/MainContainer/ActionPanel/ActionVBox/ContinueToShopButton
-@onready var view_team_button: Button = $UI/MainContainer/ActionPanel/ActionVBox/ViewTeamButton
-@onready var back_button: Button = $UI/MainContainer/ActionPanel/ActionVBox/BackButton
-
-# Bottom action bar (fixed)
-@onready var bottom_action_bar: HBoxContainer = $UI/BottomActionBar
+# Right column - Action Hub
+@onready var right_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions
+@onready var win_probability_label: Label = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/WinProbabilityLabel
+@onready var win_probability_gauge: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/WinProbabilityGauge
+@onready var start_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/StartRaceButton
+@onready var complete_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/CompleteRaceButton
+@onready var continue_to_shop_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/ContinueToShopButton
+@onready var view_team_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/ViewTeamButton
+@onready var back_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/BackButton
 
 # Result panel
 @onready var result_panel: Panel = $UI/ResultPanel
-@onready var result_label: Label = $UI/ResultPanel/ResultLabel
+@onready var result_label: Label = $UI/ResultPanel/VBoxContainer/ResultLabel
+@onready var result_close_button: Button = $UI/ResultPanel/VBoxContainer/CloseButton
 
 # Loading panel
 @onready var loading_panel: Panel = $UI/LoadingPanel
@@ -67,7 +69,7 @@ var race_state: RaceState = RaceState.IDLE
 @onready var purchase_feedback_label: Label = $UI/PurchaseFeedbackLabel
 
 # Breadcrumb
-@onready var breadcrumb_label: Label = $UI/BreadcrumbLabel
+@onready var breadcrumb_label: Label = $UI/MainContainer/MainVBox/FooterSpace/BreadcrumbLabel
 
 var previous_ante: int = 1
 var last_race_result: Dictionary = {}
@@ -80,6 +82,7 @@ func _ready() -> void:
 	complete_race_button.pressed.connect(_on_complete_race_pressed)
 	continue_to_shop_button.pressed.connect(_on_continue_to_shop_pressed)
 	view_team_button.pressed.connect(_on_view_team_pressed)
+	result_close_button.pressed.connect(_on_result_close_pressed)
 	
 	# Setup keyboard shortcuts
 	_setup_keyboard_shortcuts()
@@ -114,29 +117,78 @@ func _input(event: InputEvent) -> void:
 		_on_back_button_pressed()
 
 func _style_panels() -> void:
-	# Style stats panel
-	var stats_style = StyleBoxFlat.new()
-	stats_style.bg_color = Color(0.95, 0.95, 0.9, 0.9)  # Parchment-like
-	stats_style.border_color = Color(0.5, 0.5, 0.5, 1.0)
-	stats_style.border_width_left = 2
-	stats_style.border_width_top = 2
-	stats_style.border_width_right = 2
-	stats_style.border_width_bottom = 2
-	stats_style.corner_radius_top_left = 5
-	stats_style.corner_radius_top_right = 5
-	stats_style.corner_radius_bottom_right = 5
-	stats_style.corner_radius_bottom_left = 5
-	stats_panel.add_theme_stylebox_override("panel", stats_style)
+	# Style header bar - lighter to match background
+	var header_style = StyleBoxFlat.new()
+	header_style.bg_color = Color(0.949, 0.918, 0.843, 0.8)  # Match background with slight transparency
+	header_style.border_color = Color(0.5, 0.5, 0.5, 0.6)
+	header_style.border_width_left = 1
+	header_style.border_width_top = 1
+	header_style.border_width_right = 1
+	header_style.border_width_bottom = 2
+	header_style.corner_radius_top_left = 3
+	header_style.corner_radius_top_right = 3
+	header_style.corner_radius_bottom_right = 3
+	header_style.corner_radius_bottom_left = 3
+	$UI/MainContainer/MainVBox/HeaderBar.add_theme_stylebox_override("panel", header_style)
 	
-	# Style inventory panel
-	var inventory_style = stats_style.duplicate()
-	inventory_style.bg_color = Color(0.95, 0.95, 0.9, 0.9)
-	inventory_panel.add_theme_stylebox_override("panel", inventory_style)
+	# Style progress bars
+	_style_progress_bar(speed_bar, Color(0.2, 0.6, 0.9))
+	_style_progress_bar(endurance_bar, Color(0.4, 0.7, 0.4))
+	_style_progress_bar(stamina_bar, Color(0.9, 0.6, 0.3))
+	_style_progress_bar(power_bar, Color(0.9, 0.4, 0.2))
+	_style_progress_bar(win_probability_gauge, Color(0.3, 0.8, 0.4))
 	
-	# Style action panel
-	var action_style = stats_style.duplicate()
-	action_style.bg_color = Color(0.95, 0.95, 0.9, 0.9)
-	action_panel.add_theme_stylebox_override("panel", action_style)
+	# Style buttons
+	_style_action_button(start_race_button, Color(0.3, 0.8, 0.4))  # Green
+	_style_action_button(complete_race_button, Color(0.5, 0.5, 0.5))  # Grey
+	_style_action_button(continue_to_shop_button, Color(0.2, 0.6, 0.9))  # Blue
+	_style_action_button(view_team_button, Color(0.2, 0.6, 0.9))  # Blue
+	_style_action_button(back_button, Color(0.8, 0.3, 0.3))  # Red
+	_style_action_button(result_close_button, Color(0.6, 0.6, 0.6))  # Grey
+
+func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
+	var bg_style = StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.3, 0.3, 0.3, 0.5)
+	bg_style.corner_radius_top_left = 3
+	bg_style.corner_radius_top_right = 3
+	bg_style.corner_radius_bottom_right = 3
+	bg_style.corner_radius_bottom_left = 3
+	bar.add_theme_stylebox_override("background", bg_style)
+	
+	var fill_style = StyleBoxFlat.new()
+	fill_style.bg_color = fill_color
+	fill_style.corner_radius_top_left = 3
+	fill_style.corner_radius_top_right = 3
+	fill_style.corner_radius_bottom_right = 3
+	fill_style.corner_radius_bottom_left = 3
+	bar.add_theme_stylebox_override("fill", fill_style)
+
+func _style_action_button(button: Button, color: Color) -> void:
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = color
+	style_normal.corner_radius_top_left = 5
+	style_normal.corner_radius_top_right = 5
+	style_normal.corner_radius_bottom_right = 5
+	style_normal.corner_radius_bottom_left = 5
+	
+	var style_hover = StyleBoxFlat.new()
+	style_hover.bg_color = color.lightened(0.15)
+	style_hover.corner_radius_top_left = 5
+	style_hover.corner_radius_top_right = 5
+	style_hover.corner_radius_bottom_right = 5
+	style_hover.corner_radius_bottom_left = 5
+	
+	var style_pressed = StyleBoxFlat.new()
+	style_pressed.bg_color = color.darkened(0.2)
+	style_pressed.corner_radius_top_left = 5
+	style_pressed.corner_radius_top_right = 5
+	style_pressed.corner_radius_bottom_right = 5
+	style_pressed.corner_radius_bottom_left = 5
+	
+	button.add_theme_stylebox_override("normal", style_normal)
+	button.add_theme_stylebox_override("hover", style_hover)
+	button.add_theme_stylebox_override("pressed", style_pressed)
+	button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	
 	# Style tooltip
 	var tooltip_style = StyleBoxFlat.new()
@@ -167,9 +219,9 @@ func _style_panels() -> void:
 	result_panel.add_theme_stylebox_override("panel", result_style)
 
 func _style_text_labels() -> void:
-	# Dark color for text on light backgrounds
-	var dark_text_color = Color(0.1, 0.1, 0.1, 1.0)  # Very dark grey/black
-	var medium_dark_color = Color(0.2, 0.2, 0.2, 1.0)  # Medium dark grey
+	# Dark grey color for text on light backgrounds
+	var dark_text_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark grey
+	var medium_dark_color = Color(0.4, 0.4, 0.4, 1.0)  # Medium dark grey
 	
 	# Header labels
 	ante_label.add_theme_color_override("font_color", dark_text_color)
@@ -189,16 +241,16 @@ func _style_text_labels() -> void:
 	# Action hub labels
 	win_probability_label.add_theme_color_override("font_color", dark_text_color)
 	
-	# Panel headers (access via scene tree)
-	var stats_header = stats_vbox.get_node_or_null("StatsHeader")
+	# Panel headers
+	var stats_header = left_col.get_node_or_null("StatsHeader")
 	if stats_header:
 		stats_header.add_theme_color_override("font_color", dark_text_color)
 	
-	var inventory_header = inventory_vbox.get_node_or_null("InventoryHeader")
+	var inventory_header = mid_col.get_node_or_null("InventoryHeader")
 	if inventory_header:
 		inventory_header.add_theme_color_override("font_color", dark_text_color)
 	
-	var action_header = action_panel.get_node_or_null("ActionVBox/ActionHeader")
+	var action_header = right_col.get_node_or_null("ActionHeader")
 	if action_header:
 		action_header.add_theme_color_override("font_color", dark_text_color)
 	
@@ -223,6 +275,12 @@ func _style_text_labels() -> void:
 	if equipment_header:
 		equipment_header.add_theme_color_override("font_color", dark_text_color)
 	
+	# Delta labels (green for bonuses)
+	speed_delta.add_theme_color_override("font_color", Color(0.2, 0.7, 0.2))
+	endurance_delta.add_theme_color_override("font_color", Color(0.2, 0.7, 0.2))
+	stamina_delta.add_theme_color_override("font_color", Color(0.2, 0.7, 0.2))
+	power_delta.add_theme_color_override("font_color", Color(0.2, 0.7, 0.2))
+	
 	# Tooltip text (light text on dark background)
 	tooltip_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	
@@ -238,16 +296,40 @@ func _update_display() -> void:
 	gold_label.text = "💰 Gold: %d" % GameManager.get_gold()
 	gold_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.2))
 	
-	# Update stats with progress bars
+	# Update stats with progress bars and deltas
 	var speed = GameManager.get_total_speed()
 	var endurance = GameManager.get_total_endurance()
 	var stamina = GameManager.get_total_stamina()
 	var power = GameManager.get_total_power()
 	
-	speed_label.text = "⚡ Speed: %d" % speed
-	endurance_label.text = "🏔️ Endurance: %d" % endurance
-	stamina_label.text = "💪 Stamina: %d" % stamina
-	power_label.text = "🔥 Power: %d" % power
+	# Calculate JV bonuses (25% of JV stats)
+	var jv_speed_bonus = 0
+	var jv_endurance_bonus = 0
+	var jv_stamina_bonus = 0
+	var jv_power_bonus = 0
+	
+	for runner in GameManager.jv_team:
+		var effect = GameManager.get_item_effect(runner, "team")
+		jv_speed_bonus += int(effect.speed * 0.25)
+		jv_endurance_bonus += int(effect.endurance * 0.25)
+		jv_stamina_bonus += int(effect.stamina * 0.25)
+		jv_power_bonus += int(effect.power * 0.25)
+	
+	speed_label.text = "Speed: %d" % speed
+	speed_delta.text = "+%d" % jv_speed_bonus if jv_speed_bonus > 0 else ""
+	speed_bar.value = speed
+	
+	endurance_label.text = "Endurance: %d" % endurance
+	endurance_delta.text = "+%d" % jv_endurance_bonus if jv_endurance_bonus > 0 else ""
+	endurance_bar.value = endurance
+	
+	stamina_label.text = "Stamina: %d" % stamina
+	stamina_delta.text = "+%d" % jv_stamina_bonus if jv_stamina_bonus > 0 else ""
+	stamina_bar.value = stamina
+	
+	power_label.text = "Power: %d" % power
+	power_delta.text = "+%d" % jv_power_bonus if jv_power_bonus > 0 else ""
+	power_bar.value = power
 	
 	# Update team info
 	var team_size = GameManager.get_team_size()
@@ -262,8 +344,9 @@ func _update_display() -> void:
 	# Update breadcrumb
 	breadcrumb_label.text = "Main > Run"
 	
-	# Display inventory
+	# Display inventory and team tray
 	_display_inventory()
+	_display_team_tray()
 
 func _update_team_composition() -> void:
 	# Count runner types
@@ -321,15 +404,9 @@ func _update_win_probability() -> void:
 		win_probability_gauge.modulate = Color(0.8, 0.3, 0.3)  # Red
 
 func _style_race_type_label() -> void:
-	match GameManager.current_race_type:
-		GameManager.RaceType.CHAMPIONSHIP:
-			race_type_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.2))  # Gold
-		GameManager.RaceType.QUALIFIERS:
-			race_type_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.8))  # Purple
-		GameManager.RaceType.INVITATIONAL:
-			race_type_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.9))  # Blue
-		_:
-			race_type_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))  # Green
+	# Use dark grey for all race types to match the design
+	var dark_text_color = Color(0.3, 0.3, 0.3, 1.0)
+	race_type_label.add_theme_color_override("font_color", dark_text_color)
 
 func _set_race_state(new_state: RaceState) -> void:
 	race_state = new_state
@@ -361,6 +438,13 @@ func _clear_result_display() -> void:
 func _show_result_display(message: String) -> void:
 	result_label.text = message
 	result_panel.visible = true
+	result_close_button.visible = true
+
+func _on_result_close_pressed() -> void:
+	_clear_result_display()
+	# If race was completed and won, show continue to shop button
+	if race_state == RaceState.COMPLETED and last_race_result.has("won") and last_race_result.won:
+		continue_to_shop_button.visible = true
 
 func _on_start_race_pressed() -> void:
 	if race_state == RaceState.IDLE or race_state == RaceState.COMPLETED:
@@ -464,13 +548,71 @@ func _hide_loading_screen() -> void:
 func _on_back_button_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
 
+func _display_team_tray() -> void:
+	# Clear existing team tray icons
+	for child in team_tray.get_children(): child.queue_free()
+	
+	# Display Varsity runners (5 slots)
+	for i in range(5):
+		var button = Button.new()
+		if i < GameManager.varsity_team.size():
+			var runner_name = GameManager.varsity_team[i]
+			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
+			button.text = "V%d\n%s" % [i + 1, base_name.split(" ")[0] if " " in base_name else base_name]
+			button.tooltip_text = runner_name
+			_style_team_tray_button(button, true)
+		else:
+			button.text = "V%d\nEmpty" % [i + 1]
+			button.disabled = true
+			_style_team_tray_button(button, true, true)
+		button.custom_minimum_size = Vector2(64, 64)
+		team_tray.add_child(button)
+	
+	# Display JV runners (2 slots)
+	for i in range(2):
+		var button = Button.new()
+		if i < GameManager.jv_team.size():
+			var runner_name = GameManager.jv_team[i]
+			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
+			button.text = "JV%d\n%s" % [i + 1, base_name.split(" ")[0] if " " in base_name else base_name]
+			button.tooltip_text = runner_name
+			_style_team_tray_button(button, false)
+		else:
+			button.text = "JV%d\nEmpty" % [i + 1]
+			button.disabled = true
+			_style_team_tray_button(button, false, true)
+		button.custom_minimum_size = Vector2(64, 64)
+		team_tray.add_child(button)
+
+func _style_team_tray_button(button: Button, is_varsity: bool, is_empty: bool = false) -> void:
+	var style = StyleBoxFlat.new()
+	style.corner_radius_top_left = 30
+	style.corner_radius_top_right = 30
+	style.corner_radius_bottom_right = 30
+	style.corner_radius_bottom_left = 30
+	
+	if is_empty:
+		style.bg_color = Color(0.5, 0.5, 0.5, 0.3)
+		button.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	else:
+		if is_varsity:
+			style.bg_color = Color(0.2, 0.5, 0.8, 0.8)  # Blue for varsity
+		else:
+			style.bg_color = Color(0.6, 0.4, 0.8, 0.8)  # Purple for JV
+		button.add_theme_color_override("font_color", Color(1, 1, 1))
+	
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("hover", style)
+	button.add_theme_stylebox_override("pressed", style)
+	button.add_theme_stylebox_override("disabled", style)
+
 func _display_inventory() -> void:
 	# Clear existing items
 	for child in varsity_runners_container.get_children(): child.queue_free()
 	for child in jv_runners_container.get_children(): child.queue_free()
-	for child in deck_items_container.get_children(): child.queue_free()
-	for child in boosts_items_container.get_children(): child.queue_free()
-	for child in equipment_items_container.get_children(): child.queue_free()
+	for child in deck_grid.get_children(): child.queue_free()
+	for child in boosts_container.get_children(): child.queue_free()
+	for child in equipment_container.get_children(): child.queue_free()
 
 	# Display Varsity Runners
 	for i in range(GameManager.varsity_team.size()):
@@ -484,23 +626,23 @@ func _display_inventory() -> void:
 		var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": false}
 		jv_runners_container.add_child(_create_inventory_item_button(item_data))
 
-	# Display Deck Items
+	# Display Deck Items in Grid (4 columns)
 	for i in range(GameManager.deck.size()):
 		var item_name = GameManager.deck[i]
 		var item_data = {"name": item_name, "category": "deck", "index": i}
-		deck_items_container.add_child(_create_inventory_item_button(item_data))
+		deck_grid.add_child(_create_inventory_item_button(item_data))
 
 	# Display Boosts
 	for i in range(GameManager.jokers.size()):
 		var item_name = GameManager.jokers[i]
 		var item_data = {"name": item_name, "category": "boosts", "index": i}
-		boosts_items_container.add_child(_create_inventory_item_button(item_data))
+		boosts_container.add_child(_create_inventory_item_button(item_data))
 
 	# Display Equipment
 	for i in range(GameManager.shop_inventory.size()):
 		var item_name = GameManager.shop_inventory[i]
 		var item_data = {"name": item_name, "category": "equipment", "index": i}
-		equipment_items_container.add_child(_create_inventory_item_button(item_data))
+		equipment_container.add_child(_create_inventory_item_button(item_data))
 
 func _create_inventory_item_button(item_data: Dictionary) -> Button:
 	var button = Button.new()
@@ -599,8 +741,8 @@ func _show_stat_deltas(effect: Dictionary) -> void:
 		power_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3) if effect.power > 0 else Color(0.8, 0.3, 0.3))
 
 func _hide_stat_deltas() -> void:
-	# Restore normal stat labels with dark text
-	var dark_text_color = Color(0.1, 0.1, 0.1, 1.0)
+	# Restore normal stat labels with dark grey text
+	var dark_text_color = Color(0.3, 0.3, 0.3, 1.0)
 	speed_label.add_theme_color_override("font_color", dark_text_color)
 	endurance_label.add_theme_color_override("font_color", dark_text_color)
 	stamina_label.add_theme_color_override("font_color", dark_text_color)
