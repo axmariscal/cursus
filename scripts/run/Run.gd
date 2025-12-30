@@ -566,7 +566,7 @@ func _display_team_tray() -> void:
 			button.disabled = true
 			_style_team_tray_button(button, true, true)
 		button.custom_minimum_size = Vector2(64, 64)
-		team_tray.add_child(button)
+		team_tray.call_deferred("add_child", button)
 	
 	# Display JV runners (2 slots)
 	for i in range(2):
@@ -582,7 +582,7 @@ func _display_team_tray() -> void:
 			button.disabled = true
 			_style_team_tray_button(button, false, true)
 		button.custom_minimum_size = Vector2(64, 64)
-		team_tray.add_child(button)
+		team_tray.call_deferred("add_child", button)
 
 func _style_team_tray_button(button: Button, is_varsity: bool, is_empty: bool = false) -> void:
 	var style = StyleBoxFlat.new()
@@ -618,31 +618,36 @@ func _display_inventory() -> void:
 	for i in range(GameManager.varsity_team.size()):
 		var runner_name = GameManager.varsity_team[i]
 		var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": true}
-		varsity_runners_container.add_child(_create_inventory_item_button(item_data))
+		var button = _create_inventory_item_button(item_data)
+		varsity_runners_container.call_deferred("add_child", button)
 	
 	# Display JV Runners
 	for i in range(GameManager.jv_team.size()):
 		var runner_name = GameManager.jv_team[i]
 		var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": false}
-		jv_runners_container.add_child(_create_inventory_item_button(item_data))
+		var button = _create_inventory_item_button(item_data)
+		jv_runners_container.call_deferred("add_child", button)
 
 	# Display Deck Items in Grid (4 columns)
 	for i in range(GameManager.deck.size()):
 		var item_name = GameManager.deck[i]
 		var item_data = {"name": item_name, "category": "deck", "index": i}
-		deck_grid.add_child(_create_inventory_item_button(item_data))
+		var button = _create_inventory_item_button(item_data)
+		deck_grid.call_deferred("add_child", button)
 
 	# Display Boosts
 	for i in range(GameManager.jokers.size()):
 		var item_name = GameManager.jokers[i]
 		var item_data = {"name": item_name, "category": "boosts", "index": i}
-		boosts_container.add_child(_create_inventory_item_button(item_data))
+		var button = _create_inventory_item_button(item_data)
+		boosts_container.call_deferred("add_child", button)
 
 	# Display Equipment
 	for i in range(GameManager.shop_inventory.size()):
 		var item_name = GameManager.shop_inventory[i]
 		var item_data = {"name": item_name, "category": "equipment", "index": i}
-		equipment_container.add_child(_create_inventory_item_button(item_data))
+		var button = _create_inventory_item_button(item_data)
+		equipment_container.call_deferred("add_child", button)
 
 func _create_inventory_item_button(item_data: Dictionary) -> Button:
 	var button = Button.new()
