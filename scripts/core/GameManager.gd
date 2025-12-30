@@ -119,8 +119,11 @@ func _get_race_type_name(race_type: RaceType) -> String:
 		_:
 			return "Unknown"
 
-func get_race_type_name() -> String:
-	return _get_race_type_name(current_race_type)
+func get_race_type_name(race_type: Variant = null) -> String:
+	if race_type == null:
+		return _get_race_type_name(current_race_type)
+	else:
+		return _get_race_type_name(race_type as RaceType)
 
 # ============================================
 # CURRENCY SYSTEM
@@ -144,7 +147,23 @@ func get_gold() -> int:
 func calculate_race_reward() -> int:
 	# Base reward: 25 gold + (ante * 5)
 	# Early races give less, later races give more
-	return 25 + (current_ante * 5)
+	var base_reward = 25 + (current_ante * 5)
+	
+	# Scale with race type (championship = more gold)
+	var race_type_multiplier = 1.0
+	match current_race_type:
+		RaceType.CHAMPIONSHIP:
+			race_type_multiplier = 1.5  # 50% bonus
+		RaceType.QUALIFIERS:
+			race_type_multiplier = 1.3  # 30% bonus
+		RaceType.INVITATIONAL:
+			race_type_multiplier = 1.15  # 15% bonus
+		RaceType.TRI_MEET:
+			race_type_multiplier = 1.05  # 5% bonus
+		_:
+			race_type_multiplier = 1.0  # Base
+	
+	return int(base_reward * race_type_multiplier)
 
 
 # Get item effect - returns a dictionary with stat bonuses
@@ -175,6 +194,19 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 				"Sprint Specialist":
 					effect.speed = 20
 					effect.power = 10
+				# Rare runners
+				"Elite Sprinter":
+					effect.speed = 25
+					effect.power = 15
+				"Champion Runner":
+					effect.speed = 20
+					effect.endurance = 20
+					effect.power = 10
+				"All-Star Athlete":
+					effect.speed = 18
+					effect.endurance = 18
+					effect.stamina = 15
+					effect.power = 12
 				_:
 					effect.speed = 10
 					effect.endurance = 10
@@ -195,6 +227,18 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 				"Finish Strong":
 					effect.power = 15
 					effect.speed = 5
+				# Rare deck cards
+				"Power Surge":
+					effect.speed = 20
+					effect.power = 20
+				"Final Sprint":
+					effect.power = 25
+					effect.speed = 15
+				"Victory Lap":
+					effect.speed = 15
+					effect.endurance = 15
+					effect.stamina = 15
+					effect.power = 15
 		
 		"boosts":
 			# Boosts provide multipliers or special effects
@@ -211,6 +255,19 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 					effect.endurance = 5
 				"Stamina":
 					effect.stamina = 15
+				# Rare boosts
+				"Elite Training":
+					effect.multiplier = 1.3  # 30% multiplier
+					effect.speed = 10
+					effect.endurance = 10
+				"Peak Performance":
+					effect.multiplier = 1.25  # 25% multiplier
+					effect.stamina = 20
+					effect.power = 15
+				"Champion's Edge":
+					effect.multiplier = 1.35  # 35% multiplier
+					effect.speed = 15
+					effect.power = 10
 		
 		"equipment":
 			# Equipment provides permanent bonuses
@@ -232,6 +289,20 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 					effect.endurance = 5
 					effect.stamina = 5
 					effect.power = 5
+				# Rare equipment
+				"Pro Racing Shoes":
+					effect.speed = 20
+					effect.power = 15
+				"Elite Training Kit":
+					effect.speed = 10
+					effect.endurance = 15
+					effect.stamina = 15
+					effect.power = 10
+				"Championship Gear":
+					effect.speed = 15
+					effect.endurance = 15
+					effect.stamina = 20
+					effect.power = 15
 	
 	return effect
 
