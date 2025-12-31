@@ -82,6 +82,11 @@ var back_button_confirm_timer: float = 0.0
 var back_button_waiting_confirm: bool = false
 var danger_pulse_tween: Tween = null
 
+# Team tray selection state tracking
+var selected_team_card: VBoxContainer = null  # Currently selected card container
+var selected_team_card_data: Dictionary = {}  # Data for selected card
+var team_tray_sell_button: Button = null  # Sell button that appears when card is selected
+
 func _ready() -> void:
 	# Connect buttons
 	back_button.pressed.connect(_on_back_button_pressed)
