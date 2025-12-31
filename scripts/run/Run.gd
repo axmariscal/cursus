@@ -899,25 +899,9 @@ func _style_team_tray_container(container: VBoxContainer, is_varsity: bool, is_e
 
 func _display_inventory() -> void:
 	# Clear existing items
-	for child in varsity_runners_container.get_children(): child.queue_free()
-	for child in jv_runners_container.get_children(): child.queue_free()
 	for child in deck_grid.get_children(): child.queue_free()
 	for child in boosts_container.get_children(): child.queue_free()
 	for child in equipment_container.get_children(): child.queue_free()
-
-	# Display Varsity Runners
-	for i in range(GameManager.varsity_team.size()):
-		var runner_name = GameManager.varsity_team[i]
-		var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": true}
-		var button = _create_inventory_item_button(item_data)
-		varsity_runners_container.call_deferred("add_child", button)
-	
-	# Display JV Runners
-	for i in range(GameManager.jv_team.size()):
-		var runner_name = GameManager.jv_team[i]
-		var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": false}
-		var button = _create_inventory_item_button(item_data)
-		jv_runners_container.call_deferred("add_child", button)
 
 	# Display Deck Items in Grid (4 columns)
 	for i in range(GameManager.deck.size()):
