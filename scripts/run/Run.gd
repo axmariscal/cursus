@@ -86,6 +86,9 @@ var danger_pulse_tween: Tween = null
 var selected_team_card: VBoxContainer = null  # Currently selected card container
 var selected_team_card_data: Dictionary = {}  # Data for selected card
 var team_tray_sell_button: Button = null  # Sell button that appears when card is selected
+var dragged_card: VBoxContainer = null  # Card currently being dragged
+var drag_start_position: Vector2 = Vector2.ZERO  # Original position when drag started
+var drag_offset: Vector2 = Vector2.ZERO  # Offset from mouse to card when dragging started
 
 func _ready() -> void:
 	# Connect buttons
@@ -135,6 +138,12 @@ func _ready() -> void:
 	set_label_text(initial_prob)
 	win_probability_gauge.tint_progress = _get_color_for_prob(initial_prob)
 	_update_label_color(initial_prob)
+	
+	# Setup click-outside handler for deselecting team cards
+	# We'll handle this in _input() instead of viewport.gui_input
+	
+	# Ensure selected card stays raised - check periodically
+	_ensure_selected_card_raised()
 
 func _setup_keyboard_shortcuts() -> void:
 	# ESC to go back
@@ -143,6 +152,54 @@ func _setup_keyboard_shortcuts() -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):  # ESC key
 		_on_back_button_pressed()
+	
+	# Handle clicking outside team tray to deselect (but not on other cards or UI elements)
+	if event is InputEventMouseButton:
+		var mouse_event = event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			# Only deselect if clicking on empty space (not on cards, buttons, or other UI)
+			var click_pos = mouse_event.position
+			var tray_rect = Rect2(team_tray.global_position, team_tray.size)
+			
+			# Check if click was outside team tray
+			if not tray_rect.has_point(click_pos):
+				# Also check if click was on the sell button (don't deselect if clicking sell)
+				if team_tray_sell_button != null and team_tray_sell_button.visible:
+					var button_rect = Rect2(team_tray_sell_button.global_position, team_tray_sell_button.size)
+					if button_rect.has_point(click_pos):
+						return  # Click was on sell button, let it handle it
+				
+				# Check if click was on any interactive UI element (buttons, inventory, etc.)
+				if not _is_click_on_interactive_element(click_pos):
+					# Click was on empty space - deselect the card
+					_deselect_team_card()
+
+func _is_click_on_interactive_element(click_pos: Vector2) -> bool:
+	# Check if the click position is over any interactive UI element
+	# This prevents deselection when clicking on buttons, inventory items, etc.
+	
+	# Check action buttons in right column
+	var right_col_rect = Rect2(right_col.global_position, right_col.size)
+	if right_col_rect.has_point(click_pos):
+		return true
+	
+	# Check inventory area (middle column)
+	var mid_col_rect = Rect2(mid_col.global_position, mid_col.size)
+	if mid_col_rect.has_point(click_pos):
+		return true
+	
+	# Check header area (might have buttons)
+	var header_rect = Rect2(header_hbox.global_position, header_hbox.size)
+	if header_rect.has_point(click_pos):
+		return true
+	
+	# Check result panel if visible
+	if result_panel.visible:
+		var result_rect = Rect2(result_panel.global_position, result_panel.size)
+		if result_rect.has_point(click_pos):
+			return true
+	
+	return false
 
 func _style_panels() -> void:
 	# Style header bar - lighter to match background
@@ -170,7 +227,8 @@ func _style_panels() -> void:
 	# Style buttons
 	_style_action_button(start_race_button, Color(0.3, 0.8, 0.4))  # Green
 	_style_action_button(complete_race_button, Color(0.5, 0.5, 0.5))  # Grey
-	_style_action_button(continue_to_shop_button, Color(0.2, 0.6, 0.9))  # Blue
+	# Shop button will be styled dynamically based on state
+	_style_shop_button(false)  # Start as gray/inactive
 	_style_action_button(view_team_button, Color(0.2, 0.6, 0.9))  # Blue
 	_style_action_button(back_button, Color(0.8, 0.3, 0.3))  # Red
 	_style_action_button(result_close_button, Color(0.6, 0.6, 0.6))  # Grey
@@ -218,6 +276,44 @@ func _style_action_button(button: Button, color: Color) -> void:
 	button.add_theme_stylebox_override("hover", style_hover)
 	button.add_theme_stylebox_override("pressed", style_pressed)
 	button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+
+func _style_shop_button(is_active: bool) -> void:
+	var color = Color(0.2, 0.6, 0.9) if is_active else Color(0.5, 0.5, 0.5)  # Blue when active, gray when inactive
+	
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = color
+	style_normal.corner_radius_top_left = 5
+	style_normal.corner_radius_top_right = 5
+	style_normal.corner_radius_bottom_right = 5
+	style_normal.corner_radius_bottom_left = 5
+	
+	var style_hover = StyleBoxFlat.new()
+	style_hover.bg_color = color.lightened(0.15) if is_active else color  # Only lighten if active
+	style_hover.corner_radius_top_left = 5
+	style_hover.corner_radius_top_right = 5
+	style_hover.corner_radius_bottom_right = 5
+	style_hover.corner_radius_bottom_left = 5
+	
+	var style_pressed = StyleBoxFlat.new()
+	style_pressed.bg_color = color.darkened(0.2) if is_active else color  # Only darken if active
+	style_pressed.corner_radius_top_left = 5
+	style_pressed.corner_radius_top_right = 5
+	style_pressed.corner_radius_bottom_right = 5
+	style_pressed.corner_radius_bottom_left = 5
+	
+	var style_disabled = StyleBoxFlat.new()
+	style_disabled.bg_color = Color(0.4, 0.4, 0.4, 0.7)  # Darker gray when disabled
+	style_disabled.corner_radius_top_left = 5
+	style_disabled.corner_radius_top_right = 5
+	style_disabled.corner_radius_bottom_right = 5
+	style_disabled.corner_radius_bottom_left = 5
+	
+	continue_to_shop_button.add_theme_stylebox_override("normal", style_normal)
+	continue_to_shop_button.add_theme_stylebox_override("hover", style_hover)
+	continue_to_shop_button.add_theme_stylebox_override("pressed", style_pressed)
+	continue_to_shop_button.add_theme_stylebox_override("disabled", style_disabled)
+	continue_to_shop_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	continue_to_shop_button.add_theme_color_override("font_disabled_color", Color(0.7, 0.7, 0.7, 1))
 	
 	# Style tooltip
 	var tooltip_style = StyleBoxFlat.new()
@@ -577,24 +673,31 @@ func _set_race_state(new_state: RaceState) -> void:
 			_clear_result_display()
 			start_race_button.disabled = false
 			complete_race_button.disabled = true
-			continue_to_shop_button.visible = false
+			continue_to_shop_button.visible = true
+			continue_to_shop_button.disabled = true
+			_style_shop_button(false)  # Gray when inactive
 		RaceState.RACING:
 			_clear_result_display()
 			start_race_button.disabled = true
 			complete_race_button.disabled = false
-			continue_to_shop_button.visible = false
+			continue_to_shop_button.visible = true
+			continue_to_shop_button.disabled = true
+			_style_shop_button(false)  # Gray when inactive
 		RaceState.COMPLETED:
 			start_race_button.disabled = false
 			complete_race_button.disabled = true
+			continue_to_shop_button.visible = true
 			if last_race_result.has("won") and last_race_result.won:
-				continue_to_shop_button.visible = true
+				continue_to_shop_button.disabled = false
+				_style_shop_button(true)  # Blue when active
 			else:
-				continue_to_shop_button.visible = false
+				continue_to_shop_button.disabled = true
+				_style_shop_button(false)  # Gray when inactive
 
 func _clear_result_display() -> void:
 	result_label.text = ""
 	result_panel.visible = false
-	continue_to_shop_button.visible = false
+	# Don't hide the button, just update its state based on race state
 
 func _show_result_display(message: String) -> void:
 	result_label.text = message
@@ -603,9 +706,13 @@ func _show_result_display(message: String) -> void:
 
 func _on_result_close_pressed() -> void:
 	_clear_result_display()
-	# If race was completed and won, show continue to shop button
+	# Update button state based on race completion
 	if race_state == RaceState.COMPLETED and last_race_result.has("won") and last_race_result.won:
-		continue_to_shop_button.visible = true
+		continue_to_shop_button.disabled = false
+		_style_shop_button(true)  # Blue when active
+	else:
+		continue_to_shop_button.disabled = true
+		_style_shop_button(false)  # Gray when inactive
 
 func _on_start_race_pressed() -> void:
 	if race_state == RaceState.IDLE or race_state == RaceState.COMPLETED:
@@ -669,9 +776,16 @@ func _on_complete_race_pressed() -> void:
 			result_message += "Run Ended at Ante %d" % completed_ante
 		
 		last_race_result = race_result
-		_show_result_display(result_message)
+		# Update display first to show new gold
 		_update_display()
+		# Set race state (this will enable shop button if won)
 		_set_race_state(RaceState.COMPLETED)
+		# Ensure shop button is enabled if race was won (double-check)
+		if race_result.won:
+			continue_to_shop_button.disabled = false
+			_style_shop_button(true)
+		# Show result display after state is set
+		_show_result_display(result_message)
 		
 		# Removed auto-return to main menu - player can now view results as long as they want
 		# They can manually return using the back button or ESC key
@@ -688,11 +802,15 @@ func _get_position_suffix(position: int) -> String:
 			return "th"
 
 func _on_continue_to_shop_pressed() -> void:
+	# Deselect card when navigating to shop
+	_deselect_team_card()
 	_show_loading_screen("Loading Shop...")
 	await get_tree().create_timer(0.5).timeout
 	get_tree().change_scene_to_file("res://scenes/core/ShopScene.tscn")
 
 func _on_view_team_pressed() -> void:
+	# Deselect card when navigating to team management
+	_deselect_team_card()
 	get_tree().change_scene_to_file("res://scenes/core/TeamManagement.tscn")
 
 func _show_loading_screen(message: String) -> void:
@@ -717,6 +835,8 @@ func _on_back_button_pressed() -> void:
 		timer.timeout.connect(_reset_back_button)
 	else:
 		# Second press - actually go back
+		# Deselect card when navigating to main menu
+		_deselect_team_card()
 		get_tree().change_scene_to_file("res://scenes/core/Main.tscn")
 
 func _reset_back_button() -> void:
@@ -772,6 +892,9 @@ func _display_team_tray() -> void:
 		var container = VBoxContainer.new()
 		container.custom_minimum_size = Vector2(120, 160)
 		container.add_theme_constant_override("separation", 2)
+		
+		# Ensure container can receive mouse events
+		container.mouse_filter = Control.MOUSE_FILTER_STOP
 		
 		if i < GameManager.varsity_team.size():
 			var runner_name = GameManager.varsity_team[i]
@@ -831,6 +954,9 @@ func _display_team_tray() -> void:
 		container.custom_minimum_size = Vector2(120, 160)
 		container.add_theme_constant_override("separation", 2)
 		
+		# Ensure container can receive mouse events
+		container.mouse_filter = Control.MOUSE_FILTER_STOP
+		
 		if i < GameManager.jv_team.size():
 			var runner_name = GameManager.jv_team[i]
 			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
@@ -882,10 +1008,47 @@ func _display_team_tray() -> void:
 			_style_team_tray_container(container, false, true)
 		
 		team_tray.call_deferred("add_child", container)
+	
+	# Try to restore selection if the selected card still exists
+	# Use call_deferred to restore after containers are added
+	call_deferred("_restore_team_card_selection")
+
+func _restore_team_card_selection() -> void:
+	if selected_team_card_data.has("index") and selected_team_card_data.has("is_varsity"):
+		# Find the container that matches the selected data
+		var index = selected_team_card_data.index
+		var is_varsity = selected_team_card_data.is_varsity
+		var containers = team_tray.get_children()
+		
+		# Calculate which container index it should be
+		# Varsity first (0-4), then JV (5-6)
+		var target_index = index if is_varsity else 5 + index
+		
+		if target_index < containers.size():
+			var container = containers[target_index]
+			# Check if container has content (not empty slot)
+			if container.get_child_count() > 1:  # More than just the background ColorRect
+				# Recreate item_data to match
+				var runner_name = ""
+				if is_varsity and index < GameManager.varsity_team.size():
+					runner_name = GameManager.varsity_team[index]
+				elif not is_varsity and index < GameManager.jv_team.size():
+					runner_name = GameManager.jv_team[index]
+				
+				if runner_name != "":
+					var effect = GameManager.get_item_effect(runner_name, "team")
+					var item_data = {"name": runner_name, "category": "team", "index": index, "is_varsity": is_varsity}
+					# Restore selection without triggering sell button (just visual)
+					selected_team_card = container
+					selected_team_card_data = item_data
+					_animate_card_selection(container, true)
+					_show_sell_button_for_selected_card()
 
 func _style_team_tray_container(container: VBoxContainer, is_varsity: bool, is_empty: bool = false) -> void:
-	# Ensure container can receive mouse events for hover
+	# Ensure container can receive mouse events for hover and clicks
 	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	# Ensure container can receive input events
+	container.set_process_input(true)
 	
 	# Add a subtle background color to the container using a ColorRect
 	var bg = ColorRect.new()
@@ -1013,17 +1176,220 @@ func _on_item_unhovered() -> void:
 	_hide_stat_deltas()
 
 func _on_team_tray_card_clicked(event: InputEvent, item_data: Dictionary, container: VBoxContainer) -> void:
-	if event is InputEventMouseButton:
-		var mouse_event = event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+	# Handle mouse motion for dragging
+	if event is InputEventMouseMotion:
+		if dragged_card == container:
+			var motion_event = event as InputEventMouseMotion
+			# Update card position based on mouse position (relative to parent)
+			var parent = container.get_parent()
+			var mouse_in_parent = parent.get_global_mouse_position() - parent.global_position
+			var new_position = mouse_in_parent - drag_offset
+			container.position = new_position
+			# Update sell button position to follow the card
+			call_deferred("_position_sell_button_next_to_card")
+		return
+	
+	# Only process left mouse button events
+	if not (event is InputEventMouseButton):
+		return
+	
+	var mouse_event = event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	
+	if mouse_event.pressed:
+		# Mouse button pressed - check if click was on the sell button first (using local coordinates)
+		if team_tray_sell_button != null and team_tray_sell_button.visible:
+			# Get click position in the card's local coordinate space
+			var local_click_pos = container.get_local_mouse_position()
+			var button_local_pos = team_tray_sell_button.position
+			var button_size = team_tray_sell_button.size
+			var button_rect = Rect2(button_local_pos, button_size)
+			if button_rect.has_point(local_click_pos):
+				return  # Click was on sell button, let it handle it
+		
+		# Select the card (don't toggle - just select if not already selected)
+		if selected_team_card != container:
 			_select_team_card(container, item_data)
+		
+		# Prepare for potential drag (only if we actually start moving)
+		drag_start_position = container.position
+		var parent = container.get_parent()
+		var mouse_in_parent = parent.get_global_mouse_position() - parent.global_position
+		drag_offset = mouse_in_parent - container.position
+		dragged_card = container
+	else:
+		# Mouse button released - end drag
+		if dragged_card == container:
+			var drag_distance = (container.position - drag_start_position).length()
+			
+			if drag_distance < 5.0:  # Threshold for click vs drag
+				# It was a click, not a drag - just reset position
+				# DON'T toggle selection - card stays selected
+				container.position = drag_start_position
+			# If it was a drag (distance >= 5.0), keep the new position
+			# Card remains selected either way
+			
+			dragged_card = null
 
 func _select_team_card(container: VBoxContainer, item_data: Dictionary) -> void:
-	# TODO: Implement full selection logic in Step 3
-	# For now, just store the selection
+	# Deselect previous card if any
+	if selected_team_card != null:
+		_deselect_team_card()
+	
+	# Select new card
 	selected_team_card = container
 	selected_team_card_data = item_data
-	print("Selected card: ", item_data)
+	
+	# Visual feedback: raise the card (scale up only, no position change)
+	_animate_card_selection(container, true)
+	
+	# Show sell button
+	_show_sell_button_for_selected_card()
+
+func _deselect_team_card() -> void:
+	if selected_team_card != null:
+		# Animate card back to normal (scale down only, position stays where dragged)
+		_animate_card_selection(selected_team_card, false)
+		selected_team_card = null
+		selected_team_card_data = {}
+	
+	# Reset drag state
+	dragged_card = null
+	
+	# Hide sell button
+	_hide_sell_button()
+
+func _animate_card_selection(container: VBoxContainer, is_selected: bool) -> void:
+	if is_selected:
+		# Highlight card: scale up and keep it raised (stays raised until deselected)
+		# Store original position for reference
+		if not container.has_meta("original_position"):
+			container.set_meta("original_position", container.position)
+		
+		# Set z-index immediately to bring to front
+		container.z_index = 10
+		
+		# Set scale immediately and ensure it persists
+		container.scale = Vector2(1.1, 1.1)
+		
+		# Animate smoothly to raised state if not already there
+		var current_scale = container.scale
+		if current_scale.length() < 1.05:
+			var tween = create_tween().set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+			container.scale = Vector2(0.95, 0.95)
+			tween.tween_property(container, "scale", Vector2(1.1, 1.1), 0.15)
+			# Ensure it stays at 1.1 after animation completes
+			tween.tween_callback(func(): 
+				if container != null and is_instance_valid(container):
+					container.scale = Vector2(1.1, 1.1)
+			)
+	else:
+		# Lower card: scale down only when deselected
+		var tween = create_tween().set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+		tween.tween_property(container, "scale", Vector2(1.0, 1.0), 0.15)
+		container.z_index = 0  # Back to normal
+
+func _ensure_selected_card_raised() -> void:
+	# Periodically ensure the selected card stays raised
+	# This prevents the scale from being reset by other systems
+	if selected_team_card != null and is_instance_valid(selected_team_card):
+		# Check if scale is correct
+		if selected_team_card.scale.length() < 1.05:
+			# Scale was reset somehow - restore it
+			selected_team_card.scale = Vector2(1.1, 1.1)
+			selected_team_card.z_index = 10
+		
+		# Schedule next check
+		await get_tree().create_timer(0.1).timeout
+		_ensure_selected_card_raised()
+
+func _show_sell_button_for_selected_card() -> void:
+	_hide_sell_button()
+	
+	if selected_team_card == null or selected_team_card_data.is_empty():
+		return
+	
+	var item_name = selected_team_card_data.name
+	var category = selected_team_card_data.category
+	var is_varsity = selected_team_card_data.get("is_varsity", false)
+	var sell_price = _get_sell_price(item_name, category)
+	
+	var can_sell = true
+	if category == "team" and is_varsity and GameManager.varsity_team.size() <= 5:
+		can_sell = false
+	
+	# Create smaller sell button (Balatro-style) - square button
+	team_tray_sell_button = Button.new()
+	team_tray_sell_button.text = "SELL\n%d" % sell_price  # Smaller text
+	team_tray_sell_button.custom_minimum_size = Vector2(40, 40)  # Square button
+	team_tray_sell_button.disabled = not can_sell
+	team_tray_sell_button.mouse_filter = Control.MOUSE_FILTER_STOP  # Ensure button receives mouse events
+	team_tray_sell_button.add_theme_font_size_override("font_size", 10)  # Smaller font for compact button
+	team_tray_sell_button.z_index = 100  # Ensure button is on top and clickable
+	
+	# Style as red button
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = Color(0.8, 0.2, 0.2, 0.9) if can_sell else Color(0.5, 0.5, 0.5, 0.5)
+	style_normal.corner_radius_top_left = 5
+	style_normal.corner_radius_top_right = 5
+	style_normal.corner_radius_bottom_right = 5
+	style_normal.corner_radius_bottom_left = 5
+	
+	var style_hover = StyleBoxFlat.new()
+	style_hover.bg_color = Color(0.9, 0.3, 0.3, 0.9) if can_sell else Color(0.5, 0.5, 0.5, 0.5)
+	style_hover.corner_radius_top_left = 5
+	style_hover.corner_radius_top_right = 5
+	style_hover.corner_radius_bottom_right = 5
+	style_hover.corner_radius_bottom_left = 5
+	
+	var style_pressed = StyleBoxFlat.new()
+	style_pressed.bg_color = Color(0.7, 0.1, 0.1, 0.9) if can_sell else Color(0.5, 0.5, 0.5, 0.5)
+	style_pressed.corner_radius_top_left = 5
+	style_pressed.corner_radius_top_right = 5
+	style_pressed.corner_radius_bottom_right = 5
+	style_pressed.corner_radius_bottom_left = 5
+	
+	team_tray_sell_button.add_theme_stylebox_override("normal", style_normal)
+	team_tray_sell_button.add_theme_stylebox_override("hover", style_hover)
+	team_tray_sell_button.add_theme_stylebox_override("pressed", style_pressed)
+	team_tray_sell_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	
+	# Position button as a child of the selected card so it moves with it
+	selected_team_card.add_child(team_tray_sell_button)
+	
+	# Use call_deferred to position after layout
+	call_deferred("_position_sell_button_next_to_card")
+	
+	# Connect sell action
+	team_tray_sell_button.pressed.connect(_on_sell_selected_team_card)
+
+func _position_sell_button_next_to_card() -> void:
+	if team_tray_sell_button == null or selected_team_card == null:
+		return
+	
+	# Position button at the bottom right of the card (relative to card container)
+	var card_size = selected_team_card.size
+	var button_size = team_tray_sell_button.custom_minimum_size
+	var button_offset_x = card_size.x - button_size.x - 5  # 5px from right edge
+	var button_offset_y = card_size.y - button_size.y - 5  # 5px from bottom edge
+	
+	# Position relative to the card container
+	team_tray_sell_button.position = Vector2(button_offset_x, button_offset_y)
+	
+	# Ensure button is on top
+	selected_team_card.move_child(team_tray_sell_button, selected_team_card.get_child_count() - 1)
+
+func _hide_sell_button() -> void:
+	if team_tray_sell_button != null:
+		team_tray_sell_button.queue_free()
+		team_tray_sell_button = null
+
+func _on_sell_selected_team_card() -> void:
+	if selected_team_card != null and not selected_team_card_data.is_empty():
+		_on_sell_item_pressed(selected_team_card_data)
+		# _on_sell_item_pressed will call _update_display() which refreshes the tray
+		# So we don't need to manually deselect here
 
 func _show_stat_deltas(effect: Dictionary) -> void:
 	# Update stat labels to show potential changes
@@ -1052,8 +1418,15 @@ func _hide_stat_deltas() -> void:
 	endurance_label.add_theme_color_override("font_color", dark_text_color)
 	stamina_label.add_theme_color_override("font_color", dark_text_color)
 	power_label.add_theme_color_override("font_color", dark_text_color)
-	# Then update the display to refresh the text
-	_update_display()
+	# Update stat labels directly without refreshing entire display (which would recreate cards)
+	var speed = GameManager.get_total_speed()
+	var endurance = GameManager.get_total_endurance()
+	var stamina = GameManager.get_total_stamina()
+	var power = GameManager.get_total_power()
+	speed_label.text = "Speed: %d" % speed
+	endurance_label.text = "Endurance: %d" % endurance
+	stamina_label.text = "Stamina: %d" % stamina
+	power_label.text = "Power: %d" % power
 
 func _format_effect_text(effect: Dictionary) -> String:
 	var parts: Array[String] = []
