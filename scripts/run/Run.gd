@@ -809,6 +809,9 @@ func _display_team_tray() -> void:
 			container.mouse_entered.connect(_on_item_hovered.bind(item_data, effect))
 			container.mouse_exited.connect(_on_item_unhovered)
 			
+			# Connect click handler for card selection
+			container.gui_input.connect(_on_team_tray_card_clicked.bind(item_data, container))
+			
 			_style_team_tray_container(container, true)
 		else:
 			# Empty slot
@@ -863,6 +866,9 @@ func _display_team_tray() -> void:
 			# Connect hover events for stat deltas
 			container.mouse_entered.connect(_on_item_hovered.bind(item_data, effect))
 			container.mouse_exited.connect(_on_item_unhovered)
+			
+			# Connect click handler for card selection
+			container.gui_input.connect(_on_team_tray_card_clicked.bind(item_data, container))
 			
 			_style_team_tray_container(container, false)
 		else:
@@ -1005,6 +1011,19 @@ func _on_item_hovered(item_data: Dictionary, effect: Dictionary) -> void:
 func _on_item_unhovered() -> void:
 	hovered_item = {}
 	_hide_stat_deltas()
+
+func _on_team_tray_card_clicked(event: InputEvent, item_data: Dictionary, container: VBoxContainer) -> void:
+	if event is InputEventMouseButton:
+		var mouse_event = event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			_select_team_card(container, item_data)
+
+func _select_team_card(container: VBoxContainer, item_data: Dictionary) -> void:
+	# TODO: Implement full selection logic in Step 3
+	# For now, just store the selection
+	selected_team_card = container
+	selected_team_card_data = item_data
+	print("Selected card: ", item_data)
 
 func _show_stat_deltas(effect: Dictionary) -> void:
 	# Update stat labels to show potential changes
