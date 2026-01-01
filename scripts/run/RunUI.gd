@@ -6,6 +6,8 @@ class_name RunUI
 var current_display_prob: float = 0.0
 var previous_probability: float = 0.0
 var danger_pulse_tween: Tween = null
+var danger_pulse_timer: Timer = null
+var is_in_danger_mode: bool = false
 
 # UI element references (will be set by Run.gd)
 var header_labels: Dictionary = {}
@@ -235,24 +237,49 @@ func trigger_danger_effects() -> void:
 		shake_tween.tween_property(gauge_container, "position", original_pos, 0.05)
 	
 	# Pulsing animation for the label
-	# Use -1 for infinite loops (pulse continuously while in danger)
+	# Use a simple finite loop instead of infinite to avoid errors
 	# Make sure to kill any existing tween first
 	if danger_pulse_tween and danger_pulse_tween.is_valid():
 		danger_pulse_tween.kill()
 	
+	is_in_danger_mode = true
+	_start_danger_pulse()
+
+func _start_danger_pulse() -> void:
+	# Only pulse if still in danger mode
+	if not is_in_danger_mode:
+		return
+	if not win_probability_label or not is_instance_valid(win_probability_label):
+		return
+	
+	# Create a simple pulse animation (fade out then fade in)
 	danger_pulse_tween = get_tree().create_tween()
-	danger_pulse_tween.set_loops(-1)  # Infinite loop for continuous pulsing
 	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 0.5, 0.5)
 	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 1.0, 0.5)
+	# Restart after completion if still in danger
+	danger_pulse_tween.finished.connect(_restart_danger_pulse)
+
+func _restart_danger_pulse() -> void:
+	# Only restart if still in danger mode
+	if is_in_danger_mode and win_probability_label and is_instance_valid(win_probability_label):
+		_start_danger_pulse()
 
 func stop_danger_effects() -> void:
+	# Mark that we're no longer in danger mode
+	is_in_danger_mode = false
+	
 	# Stop pulsing
 	if danger_pulse_tween:
-		danger_pulse_tween.kill()
+		if danger_pulse_tween.is_valid():
+			# Disconnect the callback to prevent restart
+			if danger_pulse_tween.finished.is_connected(_restart_danger_pulse):
+				danger_pulse_tween.finished.disconnect(_restart_danger_pulse)
+			danger_pulse_tween.kill()
 		danger_pulse_tween = null
 	
 	# Reset label alpha
-	win_probability_label.modulate.a = 1.0
+	if win_probability_label and is_instance_valid(win_probability_label):
+		win_probability_label.modulate.a = 1.0
 	
 	# Reset container position
 	var reset_tween = get_tree().create_tween()
