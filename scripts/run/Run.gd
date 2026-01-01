@@ -10,70 +10,70 @@ var tooltip_manager: TooltipManager
 var card_interaction: CardInteraction
 
 # Header elements
-@onready var header_hbox: HBoxContainer = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox
-@onready var gold_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/GoldContainer/GoldLabel
-@onready var race_type_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo/RaceTypeLabel
-@onready var seed_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo/SeedLabel
-@onready var ante_label: Label = $UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/AnteContainer/AnteLabel
+@onready var header_hbox: HBoxContainer = %HeaderHBox
+@onready var gold_label: Label = %GoldLabel
+@onready var race_type_label: Label = %RaceTypeLabel
+@onready var seed_label: Label = %SeedLabel
+@onready var ante_label: Label = %AnteLabel
 
 # Left column - Team Stats
-@onready var left_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats
-@onready var speed_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow/SpeedLabel
-@onready var speed_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow/SpeedDelta
-@onready var speed_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedBar
-@onready var endurance_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow/EnduranceLabel
-@onready var endurance_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow/EnduranceDelta
-@onready var endurance_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceBar
-@onready var stamina_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow/StaminaLabel
-@onready var stamina_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow/StaminaDelta
-@onready var stamina_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaBar
-@onready var power_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow/PowerLabel
-@onready var power_delta: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow/PowerDelta
-@onready var power_bar: ProgressBar = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerBar
-@onready var team_tray: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamTray
-@onready var team_info_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamInfoLabel
-@onready var team_composition_label: Label = $UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/TeamCompositionLabel
+@onready var left_col: VBoxContainer = %LeftCol_Stats
+@onready var speed_label: Label = %SpeedLabel
+@onready var speed_delta: Label = %SpeedDelta
+@onready var speed_bar: ProgressBar = %SpeedBar
+@onready var endurance_label: Label = %EnduranceLabel
+@onready var endurance_delta: Label = %EnduranceDelta
+@onready var endurance_bar: ProgressBar = %EnduranceBar
+@onready var stamina_label: Label = %StaminaLabel
+@onready var stamina_delta: Label = %StaminaDelta
+@onready var stamina_bar: ProgressBar = %StaminaBar
+@onready var power_label: Label = %PowerLabel
+@onready var power_delta: Label = %PowerDelta
+@onready var power_bar: ProgressBar = %PowerBar
+@onready var team_tray: HFlowContainer = %TeamTray
+@onready var team_info_label: Label = %TeamInfoLabel
+@onready var team_composition_label: Label = %TeamCompositionLabel
 
 # Middle column - Inventory
-@onready var mid_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory
-@onready var inventory_vbox: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox
-@onready var deck_grid: GridContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/DeckSection/DeckGrid
-@onready var boosts_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/BoostsSection/BoostsContainer
-@onready var equipment_container: HFlowContainer = $UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/EquipmentSection/EquipmentContainer
+@onready var mid_col: VBoxContainer = %MidCol_Inventory
+@onready var inventory_vbox: VBoxContainer = %InventoryVBox
+@onready var deck_grid: GridContainer = %DeckGrid
+@onready var boosts_container: HFlowContainer = %BoostsContainer
+@onready var equipment_container: HFlowContainer = %EquipmentContainer
 
 # Right column - Action Hub
-@onready var right_col: VBoxContainer = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions
-@onready var win_probability_label: Label = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/WinProbabilityLabel
-@onready var gauge_container: Control = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer
-@onready var success_glow: GPUParticles2D = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer/SuccessGlow
-@onready var win_probability_gauge: TextureProgressBar = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer/WinProbabilityGauge
-@onready var start_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/StartRaceButton
-@onready var complete_race_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/CompleteRaceButton
-@onready var continue_to_shop_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/ContinueToShopButton
-@onready var view_team_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/ViewTeamButton
-@onready var back_button: Button = $UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/BackButton
+@onready var right_col: VBoxContainer = %RightCol_Actions
+@onready var win_probability_label: Label = %WinProbabilityLabel
+@onready var gauge_container: Control = %GaugeContainer
+@onready var success_glow: GPUParticles2D = %SuccessGlow
+@onready var win_probability_gauge: TextureProgressBar = %WinProbabilityGauge
+@onready var start_race_button: Button = %StartRaceButton
+@onready var complete_race_button: Button = %CompleteRaceButton
+@onready var continue_to_shop_button: Button = %ContinueToShopButton
+@onready var view_team_button: Button = %ViewTeamButton
+@onready var back_button: Button = %BackButton
 
 # Result panel
-@onready var result_panel: Panel = $UI/ResultPanel
-@onready var result_label: Label = $UI/ResultPanel/VBoxContainer/ResultLabel
-@onready var result_close_button: Button = $UI/ResultPanel/VBoxContainer/CloseButton
+@onready var result_panel: Panel = %ResultPanel
+@onready var result_label: Label = %ResultLabel
+@onready var result_close_button: Button = %CloseButton
 
 # Loading panel
-@onready var loading_panel: Panel = $UI/LoadingPanel
-@onready var loading_label: Label = $UI/LoadingPanel/LoadingLabel
+@onready var loading_panel: Panel = %LoadingPanel
+@onready var loading_label: Label = %LoadingLabel
 
 # Tooltip
-@onready var tooltip_panel: Panel = $UI/TooltipPanel
-@onready var tooltip_label: Label = $UI/TooltipPanel/TooltipLabel
+@onready var tooltip_panel: Panel = %TooltipPanel
+@onready var tooltip_label: Label = %TooltipLabel
 
 # Purchase feedback
-@onready var purchase_feedback_label: Label = $UI/PurchaseFeedbackLabel
+@onready var purchase_feedback_label: Label = %PurchaseFeedbackLabel
 
 # Breadcrumb
-@onready var breadcrumb_label: Label = $UI/MainContainer/MainVBox/FooterSpace/BreadcrumbLabel
+@onready var breadcrumb_label: Label = %BreadcrumbLabel
 
 # Header bar reference for styling
-@onready var header_bar: PanelContainer = $UI/MainContainer/MainVBox/HeaderBar
+@onready var header_bar: PanelContainer = %HeaderBar
 
 var back_button_confirm_timer: float = 0.0
 var back_button_waiting_confirm: bool = false
@@ -334,22 +334,26 @@ func _set_race_state(new_state: RunState.RaceState) -> void:
 			start_race_button.disabled = false
 			complete_race_button.disabled = true
 			continue_to_shop_button.visible = true
-			if run_state.last_race_result.has("won") and run_state.last_race_result.won:
-				continue_to_shop_button.disabled = false
-				run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when active
+			# Enable shop button after any race completion (win or lose)
+			# Players should be able to shop to improve their team regardless of outcome
+			var won = false
+			if not run_state.last_race_result.is_empty():
+				won = run_state.last_race_result.get("won", false)
+			# Always enable the button after race completion
+			continue_to_shop_button.disabled = false
+			if won:
+				run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when won
 			else:
-				continue_to_shop_button.disabled = true
-				run_styling.style_shop_button(continue_to_shop_button, false)  # Gray when inactive
+				run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when lost (still allow shopping)
 
 func _on_result_close_pressed() -> void:
 	run_ui.clear_result_display()
 	# Update button state based on race completion
-	if run_state.get_race_state() == RunState.RaceState.COMPLETED and run_state.last_race_result.has("won") and run_state.last_race_result.won:
+	# Enable shop button after any race completion (win or lose)
+	if run_state.get_race_state() == RunState.RaceState.COMPLETED:
+		continue_to_shop_button.visible = true
 		continue_to_shop_button.disabled = false
-		run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when active
-	else:
-		continue_to_shop_button.disabled = true
-		run_styling.style_shop_button(continue_to_shop_button, false)  # Gray when inactive
+		run_styling.style_shop_button(continue_to_shop_button, true)  # Always enable shopping
 
 func _on_start_race_pressed() -> void:
 	var current_state = run_state.get_race_state()
@@ -379,11 +383,15 @@ func _on_complete_race_pressed() -> void:
 		# Update display first to show new gold
 		_update_display()
 		# Set race state (this will enable shop button if won)
+		# Note: complete_race() already sets the state to COMPLETED, but we call this
+		# to ensure UI is properly updated
 		_set_race_state(RunState.RaceState.COMPLETED)
-		# Ensure shop button is enabled if race was won (double-check)
-		if race_result.won:
-			continue_to_shop_button.disabled = false
-			run_styling.style_shop_button(continue_to_shop_button, true)
+		# Enable shop button after any race completion (win or lose)
+		# Players should be able to shop to improve their team regardless of outcome
+		continue_to_shop_button.visible = true
+		continue_to_shop_button.disabled = false
+		var won = race_result.get("won", false)
+		run_styling.style_shop_button(continue_to_shop_button, true)  # Always enable shopping
 		# Show result display after state is set
 		run_ui.show_result_display(result_message)
 

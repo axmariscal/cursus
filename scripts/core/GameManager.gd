@@ -23,6 +23,7 @@ var jokers = []          # permanent runner modifiers
 var shop_inventory = []  # practice/shop selections (equipment)
 
 var seed = 0             # run RNG seed
+var race_counter = 0     # counter to vary seed between races at same ante
 var run_active := false
 
 # Currency
@@ -37,6 +38,7 @@ var base_power := 10
 
 func start_new_run():
 	seed = randi()
+	race_counter = 0  # Reset race counter for new run
 	randomize()
 	current_ante = 1
 	current_race_type = get_race_type_for_ante(current_ante)
@@ -164,6 +166,12 @@ func calculate_race_reward() -> int:
 			race_type_multiplier = 1.0  # Base
 	
 	return int(base_reward * race_type_multiplier)
+
+func calculate_consolation_reward() -> int:
+	# Consolation reward for losing: 35% of win reward
+	# This allows players to still progress even when losing
+	var win_reward = calculate_race_reward()
+	return max(5, int(win_reward * 0.35))  # Minimum 5 gold, even for early antes
 
 
 # Get item effect - returns a dictionary with stat bonuses
@@ -524,73 +532,15 @@ func get_total_power() -> int:
 # ============================================
 
 # Calculate a runner's race performance score (lower = better finish)
-# Based on stats with some randomness
+# Delegates to RaceLogic for consistent calculations with updated variance and difficulty scaling
 func calculate_runner_performance(runner_name: String, is_player: bool = true) -> float:
-	var effect = get_item_effect(runner_name, "team")
-	
-	# Base performance from stats
-	# Speed + Power = early race performance
-	# Endurance + Stamina = late race performance
-	var speed_score = effect.speed * 0.4
-	var power_score = effect.power * 0.3
-	var endurance_score = effect.endurance * 0.2
-	var stamina_score = effect.stamina * 0.1
-	
-	var base_performance = speed_score + power_score + endurance_score + stamina_score
-	
-	# Add randomness (10-20% variance)
-	var variance = base_performance * (0.1 + (randf() * 0.1))
-	if randf() < 0.5:
-		variance = -variance  # Can be positive or negative
-	
-	var final_performance = base_performance + variance
-	
-	# For opponent teams, scale difficulty by ante
-	if not is_player:
-		var difficulty_multiplier = 1.0 + (current_ante * 0.15)  # 15% harder per ante
-		final_performance *= difficulty_multiplier
-	
-	return final_performance
+	return RaceLogic.calculate_runner_performance(runner_name, is_player)
 
 
 # Generate a single opponent team
+# Delegates to RaceLogic for opponent generation with calculated strength
 func _generate_single_opponent_team(team_index: int = 0) -> Array[String]:
-	var opponent_team: Array[String] = []
-	
-	# Base opponent strength scales with ante and race type
-	var base_strength = 50 + (current_ante * 10)
-	
-	# Championship races have stronger opponents
-	var difficulty_modifier = 1.0
-	match current_race_type:
-		RaceType.CHAMPIONSHIP:
-			difficulty_modifier = 1.3  # 30% stronger
-		RaceType.QUALIFIERS:
-			difficulty_modifier = 1.2  # 20% stronger
-		RaceType.INVITATIONAL:
-			difficulty_modifier = 1.1  # 10% stronger
-		_:
-			difficulty_modifier = 1.0
-	
-	base_strength = int(base_strength * difficulty_modifier)
-	
-	# Generate 5 opponent runners
-	# Use common runner types for opponents
-	var common_runner_types = [
-		"Hill Specialist",
-		"Steady State Runner",
-		"Tempo Runner",
-		"The Closer",
-		"Track Tourist",
-		"Short-Cutter"
-	]
-	
-	for i in range(5):
-		# Randomly select from common runner types
-		var runner_type = common_runner_types[randi() % common_runner_types.size()]
-		opponent_team.append("Runner: " + runner_type)
-	
-	return opponent_team
+	return RaceLogic.generate_single_opponent_team(team_index)
 
 # Generate all opponent teams based on race type
 func generate_opponent_teams() -> Array[Array]:
@@ -618,8 +568,11 @@ func generate_opponent_teams() -> Array[Array]:
 # Simulate a race and return results
 # Returns: Dictionary with player_positions, team_scores, placement, won, race_type
 func simulate_race() -> Dictionary:
-	# Use seed for deterministic race results
-	seed(seed + current_ante * 1000)
+	# Increment race counter to vary results between races at same ante
+	race_counter += 1
+	# Use seed for deterministic but varied race results
+	# Add race_counter so each race at the same ante gets different results
+	seed(seed + current_ante * 1000 + race_counter * 100)
 	
 	# Generate all opponent teams based on race type
 	var opponent_teams = generate_opponent_teams()

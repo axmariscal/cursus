@@ -20,10 +20,8 @@ func get_race_state() -> RaceState:
 	return race_state
 
 func calculate_win_probability() -> float:
-	# Calculate win probability based on stats vs ante difficulty
-	var player_strength = (GameManager.get_total_speed() + GameManager.get_total_endurance() + GameManager.get_total_stamina() + GameManager.get_total_power()) / 4.0
-	var opponent_strength = 50 + (GameManager.current_ante * 10)
-	return clamp((player_strength / opponent_strength) * 100, 0, 100)
+	# Calculate win probability using Monte Carlo simulation to match actual race results
+	return RaceLogic.calculate_win_probability_monte_carlo()
 
 func can_start_race() -> bool:
 	return GameManager.varsity_team.size() >= 5
@@ -54,6 +52,10 @@ func complete_race() -> Dictionary:
 		GameManager.advance_ante()
 		var gold_reward = GameManager.calculate_race_reward()
 		GameManager.earn_gold(gold_reward)
+	else:
+		# Give consolation gold for losing to allow progression
+		var consolation_reward = GameManager.calculate_consolation_reward()
+		GameManager.earn_gold(consolation_reward)
 	
 	last_race_result = race_result
 	race_state = RaceState.COMPLETED
@@ -71,6 +73,8 @@ func get_result_message(race_result: Dictionary) -> String:
 		result_message += "Gold Earned: +%d\n\n" % gold_reward
 	else:
 		result_message += "✗ DEFEAT\n\n"
+		var consolation_reward = GameManager.calculate_consolation_reward()
+		result_message += "Consolation Gold: +%d\n\n" % consolation_reward
 	
 	result_message += "--- RACE RESULTS ---\n\n"
 	result_message += "Total Teams: %d\n" % (race_result.team_scores.size())

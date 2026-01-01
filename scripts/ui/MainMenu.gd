@@ -1,18 +1,18 @@
 extends Control
 
 # Clipboard and panel references
-@onready var clipboard_panel: PanelContainer = $UI/ClipboardContainer/ClipboardPanel
-@onready var divider_line: ColorRect = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/DividerLine
-@onready var version_label: Label = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/FooterSection/VersionLabel
-@onready var title_label: Label = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection/TitleContainer/Title
-@onready var subtitle_label: Label = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection/TitleContainer/Subtitle
+@onready var clipboard_panel: PanelContainer = %ClipboardPanel
+@onready var divider_line: ColorRect = %DividerLine
+@onready var version_label: Label = %VersionLabel
+@onready var title_label: Label = %Title
+@onready var subtitle_label: Label = %Subtitle
 
 # Card references
-@onready var menu_grid: GridContainer = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid
-@onready var new_run_card: PanelContainer = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard
-@onready var continue_card: PanelContainer = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard
-@onready var collection_card: PanelContainer = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard
-@onready var options_card: PanelContainer = $UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard
+@onready var menu_grid: GridContainer = %MenuGrid
+@onready var new_run_card: PanelContainer = %NewRunCard
+@onready var continue_card: PanelContainer = %ContinueCard
+@onready var collection_card: PanelContainer = %CollectionCard
+@onready var options_card: PanelContainer = %OptionsCard
 
 # Button references
 @onready var new_run_button: Button = new_run_card.get_node("CardMargin/CardContent/CardButton")

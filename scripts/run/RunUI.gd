@@ -217,6 +217,9 @@ func trigger_success_glow() -> void:
 	timer.timeout.connect(func(): success_glow.visible = false)
 
 func trigger_danger_effects() -> void:
+	# Stop any existing danger effects first to prevent duplicates
+	stop_danger_effects()
+	
 	# Shake the gauge container
 	var shake_tween = get_tree().create_tween()
 	var shake_amount = 5.0
@@ -231,14 +234,16 @@ func trigger_danger_effects() -> void:
 		shake_tween.tween_property(gauge_container, "position", original_pos + offset, 0.05)
 		shake_tween.tween_property(gauge_container, "position", original_pos, 0.05)
 	
-	# Pulsing animation for the label (only if not already pulsing)
-	if not danger_pulse_tween or not danger_pulse_tween.is_valid():
-		if danger_pulse_tween:
-			danger_pulse_tween.kill()
-		
-		danger_pulse_tween = get_tree().create_tween().set_loops()
-		danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 0.5, 0.5)
-		danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 1.0, 0.5)
+	# Pulsing animation for the label
+	# Use -1 for infinite loops (pulse continuously while in danger)
+	# Make sure to kill any existing tween first
+	if danger_pulse_tween and danger_pulse_tween.is_valid():
+		danger_pulse_tween.kill()
+	
+	danger_pulse_tween = get_tree().create_tween()
+	danger_pulse_tween.set_loops(-1)  # Infinite loop for continuous pulsing
+	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 0.5, 0.5)
+	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 1.0, 0.5)
 
 func stop_danger_effects() -> void:
 	# Stop pulsing

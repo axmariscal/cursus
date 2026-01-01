@@ -20,22 +20,22 @@ class Item:
 		price = item_price
 		rarity = item_rarity
 
-@onready var ante_label: Label = $UI/ScrollContainer/VBoxContainer/AnteLabel
-@onready var gold_label: Label = $UI/ScrollContainer/VBoxContainer/GoldLabel
-@onready var speed_label: Label = $UI/ScrollContainer/VBoxContainer/SpeedLabel
-@onready var endurance_label: Label = $UI/ScrollContainer/VBoxContainer/EnduranceLabel
-@onready var stamina_label: Label = $UI/ScrollContainer/VBoxContainer/StaminaLabel
-@onready var power_label: Label = $UI/ScrollContainer/VBoxContainer/PowerLabel
-@onready var team_count_label: Label = $UI/ScrollContainer/VBoxContainer/TeamCountLabel
-@onready var deck_count_label: Label = $UI/ScrollContainer/VBoxContainer/DeckCountLabel
-@onready var boosts_count_label: Label = $UI/ScrollContainer/VBoxContainer/BoostsCountLabel
-@onready var equipment_count_label: Label = $UI/ScrollContainer/VBoxContainer/EquipmentCountLabel
-@onready var team_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/TeamSection/TeamItemsContainer
-@onready var deck_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/DeckSection/DeckItemsContainer
-@onready var boosts_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/BoostsSection/BoostsItemsContainer
-@onready var equipment_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/EquipmentSection/EquipmentItemsContainer
-@onready var continue_button: Button = $UI/ScrollContainer/VBoxContainer/ContinueButton
-@onready var purchase_feedback_label: Label = $UI/PurchaseFeedbackLabel
+@onready var ante_label: Label = %AnteLabel
+@onready var gold_label: Label = %GoldLabel
+@onready var speed_label: Label = %SpeedLabel
+@onready var endurance_label: Label = %EnduranceLabel
+@onready var stamina_label: Label = %StaminaLabel
+@onready var power_label: Label = %PowerLabel
+@onready var team_count_label: Label = %TeamCountLabel
+@onready var deck_count_label: Label = %DeckCountLabel
+@onready var boosts_count_label: Label = %BoostsCountLabel
+@onready var equipment_count_label: Label = %EquipmentCountLabel
+@onready var team_container: VBoxContainer = %TeamItemsContainer
+@onready var deck_container: VBoxContainer = %DeckItemsContainer
+@onready var boosts_container: VBoxContainer = %BoostsItemsContainer
+@onready var equipment_container: VBoxContainer = %EquipmentItemsContainer
+@onready var continue_button: Button = %ContinueButton
+@onready var purchase_feedback_label: Label = %PurchaseFeedbackLabel
 
 var available_items: Array[Item] = []
 

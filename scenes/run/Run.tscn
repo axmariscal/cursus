@@ -38,6 +38,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="HeaderBar" type="PanelContainer" parent="UI/MainContainer/MainVBox"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 
@@ -49,6 +50,7 @@ theme_override_constants/margin_right = 15
 theme_override_constants/margin_bottom = 10
 
 [node name="HeaderHBox" type="HBoxContainer" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin"]
+unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
 
@@ -62,6 +64,7 @@ text = "💰"
 horizontal_alignment = 1
 
 [node name="GoldLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/GoldContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Gold: 100"
 
@@ -74,11 +77,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="RaceTypeLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Race: Dual Meet"
 horizontal_alignment = 1
 
 [node name="SeedLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/CenterInfo"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Seed: 0"
 horizontal_alignment = 1
@@ -97,6 +102,7 @@ text = "🏆"
 horizontal_alignment = 1
 
 [node name="AnteLabel" type="Label" parent="UI/MainContainer/MainVBox/HeaderBar/HeaderMargin/HeaderHBox/AnteContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Ante: 1/20"
 
@@ -105,6 +111,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="LeftCol_Stats" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -129,15 +136,18 @@ text = "⚡"
 horizontal_alignment = 1
 
 [node name="SpeedLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Speed: 55"
 
 [node name="SpeedDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer/SpeedRow"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "+0"
 
 [node name="SpeedBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/SpeedContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 value = 55.0
 show_percentage = false
@@ -154,15 +164,18 @@ text = "🏔️"
 horizontal_alignment = 1
 
 [node name="EnduranceLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Endurance: 40"
 
 [node name="EnduranceDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer/EnduranceRow"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "+0"
 
 [node name="EnduranceBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/EnduranceContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 value = 40.0
 show_percentage = false
@@ -179,15 +192,18 @@ text = "💪"
 horizontal_alignment = 1
 
 [node name="StaminaLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Stamina: 30"
 
 [node name="StaminaDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer/StaminaRow"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "+0"
 
 [node name="StaminaBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/StaminaContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 value = 30.0
 show_percentage = false
@@ -204,15 +220,18 @@ text = "🔥"
 horizontal_alignment = 1
 
 [node name="PowerLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Power: 25"
 
 [node name="PowerDelta" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer/PowerRow"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "+0"
 
 [node name="PowerBar" type="ProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats/PowerContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 value = 25.0
 show_percentage = false
@@ -227,16 +246,19 @@ text = "TEAM TRAY"
 horizontal_alignment = 1
 
 [node name="TeamTray" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="TeamInfoLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Team: 5 Varsity, 0 JV"
 horizontal_alignment = 1
 
 [node name="TeamCompositionLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/LeftCol_Stats"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Composition: None"
 horizontal_alignment = 1
@@ -245,6 +267,7 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="MidCol_Inventory" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 5
 size_flags_stretch_ratio = 2.0
@@ -264,6 +287,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="InventoryVBox" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -295,6 +319,7 @@ layout_mode = 2
 text = "Deck Cards"
 
 [node name="DeckGrid" type="GridContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/DeckSection"]
+unique_name_in_owner = true
 layout_mode = 2
 columns = 4
 
@@ -306,6 +331,7 @@ layout_mode = 2
 text = "Boosts"
 
 [node name="BoostsContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/BoostsSection"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="EquipmentSection" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox"]
@@ -316,12 +342,14 @@ layout_mode = 2
 text = "Equipment"
 
 [node name="EquipmentContainer" type="HFlowContainer" parent="UI/MainContainer/MainVBox/ContentBody/MidCol_Inventory/InventoryScroll/InventoryVBox/EquipmentSection"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="VSeparator2" type="VSeparator" parent="UI/MainContainer/MainVBox/ContentBody"]
 layout_mode = 2
 
 [node name="RightCol_Actions" type="VBoxContainer" parent="UI/MainContainer/MainVBox/ContentBody"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -335,15 +363,18 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="WinProbabilityLabel" type="Label" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Win Probability: 50%"
 horizontal_alignment = 1
 
 [node name="GaugeContainer" type="Control" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(0, 150)
 
 [node name="SuccessGlow" type="GPUParticles2D" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer"]
+unique_name_in_owner = true
 visible = false
 offset = Vector2(0, 0)
 emitting = false
@@ -355,6 +386,7 @@ emission_shape = 1
 emission_sphere_radius = 50.0
 
 [node name="WinProbabilityGauge" type="TextureProgressBar" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions/GaugeContainer"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -378,17 +410,20 @@ show_percentage = false
 layout_mode = 2
 
 [node name="StartRaceButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "START RACE"
 
 [node name="CompleteRaceButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 disabled = true
 text = "COMPLETE RACE"
 
 [node name="ContinueToShopButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
@@ -398,11 +433,13 @@ text = "CONTINUE TO SHOP"
 layout_mode = 2
 
 [node name="ViewTeamButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "VIEW TEAM"
 
 [node name="BackButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "BACK TO MENU"
@@ -412,6 +449,7 @@ custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 
 [node name="BreadcrumbLabel" type="Label" parent="UI/MainContainer/MainVBox/FooterSpace"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -422,6 +460,7 @@ grow_vertical = 0
 text = "Main > Run"
 
 [node name="ResultPanel" type="Panel" parent="UI"]
+unique_name_in_owner = true
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
@@ -448,6 +487,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ResultLabel" type="Label" parent="UI/ResultPanel/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_alignment = 1
@@ -455,11 +495,13 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="CloseButton" type="Button" parent="UI/ResultPanel/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Close"
 
 [node name="LoadingPanel" type="Panel" parent="UI"]
+unique_name_in_owner = true
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
@@ -468,6 +510,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="LoadingLabel" type="Label" parent="UI/LoadingPanel"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -486,6 +529,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="TooltipPanel" type="Panel" parent="UI"]
+unique_name_in_owner = true
 visible = false
 offset_left = 100.0
 offset_top = 100.0
@@ -495,6 +539,7 @@ grow_horizontal = 0
 grow_vertical = 0
 
 [node name="TooltipLabel" type="Label" parent="UI/TooltipPanel"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -508,6 +553,7 @@ grow_vertical = 2
 autowrap_mode = 3
 
 [node name="PurchaseFeedbackLabel" type="Label" parent="UI"]
+unique_name_in_owner = true
 visible = false
 anchors_preset = 8
 anchor_left = 0.5

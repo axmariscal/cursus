@@ -1,8 +1,8 @@
 extends Control
 
-@onready var varsity_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/VarsitySection/VarsityContainer
-@onready var jv_container: VBoxContainer = $UI/ScrollContainer/VBoxContainer/JVSection/JVContainer
-@onready var back_button: Button = $UI/ScrollContainer/VBoxContainer/BackButton
+@onready var varsity_container: VBoxContainer = %VarsityContainer
+@onready var jv_container: VBoxContainer = %JVContainer
+@onready var back_button: Button = %BackButton
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_button_pressed)

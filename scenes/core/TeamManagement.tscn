@@ -42,6 +42,7 @@ text = "--- VARSITY TEAM (5 slots) ---"
 horizontal_alignment = 1
 
 [node name="VarsityContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/VarsitySection"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="HSeparator2" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
@@ -62,12 +63,14 @@ horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="JVContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/JVSection"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="HSeparator3" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="BackButton" type="Button" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Back"
 
