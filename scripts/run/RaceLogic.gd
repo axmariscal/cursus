@@ -20,10 +20,26 @@ const MONTE_CARLO_ITERATIONS: int = 500  # Number of simulations for win probabi
 # This matches the actual race simulation logic
 static func calculate_win_probability_monte_carlo() -> float:
 	if GameManager.varsity_team.size() < 5:
+		print("[DEBUG] Win Probability: Team size < 5, returning 0%")
 		return 0.0
 	
 	var wins = 0
 	var original_seed_state = randi()  # Save current RNG state
+	
+	# Calculate player team strength for comparison
+	var player_team_strength = 0.0
+	var player_performances: Array[float] = []
+	for runner in GameManager.varsity_team:
+		var strength = calculate_runner_strength(runner, true)
+		player_team_strength += strength
+		player_performances.append(strength)
+	var avg_player_strength = player_team_strength / float(GameManager.varsity_team.size())
+	
+	# Track opponent strengths for comparison
+	var opponent_strengths: Array[float] = []
+	var opponent_performances: Array[float] = []
+	var player_race_performances: Array[float] = []
+	var opponent_race_performances: Array[float] = []
 	
 	# Run Monte Carlo simulations
 	for i in range(MONTE_CARLO_ITERATIONS):
@@ -35,14 +51,105 @@ static func calculate_win_probability_monte_carlo() -> float:
 		# Simulate a race
 		var race_result = _simulate_single_race()
 		
+		# Track performance data for first few simulations
+		if i < 5:
+			var player_avg = race_result.get("avg_player_perf", 0.0)
+			var opponent_avg = race_result.get("avg_opponent_perf", 0.0)
+			var placement = race_result.get("player_placement", -1)
+			var score = race_result.get("player_score", -1)
+			
+			print("[DEBUG] Simulation %d:" % i)
+			print("  Player Avg Performance: %.2f (lower is better)" % player_avg)
+			print("  Opponent Avg Performance: %.2f (lower is better)" % opponent_avg)
+			print("  Performance Ratio: %.2f (player/opponent, >1 means player slower)" % (player_avg / max(0.001, opponent_avg)))
+			print("  Player Score: %d (lower is better)" % score)
+			print("  Placement: %d" % placement)
+			print("  Won: %s" % race_result.won)
+			print("")
+		
 		if race_result.won:
 			wins += 1
+		
+		# Track average performances across all simulations
+		if i == 0:
+			# Initialize tracking arrays
+			player_race_performances.clear()
+			opponent_race_performances.clear()
+		
+		player_race_performances.append(race_result.get("avg_player_perf", 0.0))
+		opponent_race_performances.append(race_result.get("avg_opponent_perf", 0.0))
 	
 	# Restore original RNG state
 	randomize()
 	
+	# Calculate win probability
+	var win_probability = (float(wins) / float(MONTE_CARLO_ITERATIONS)) * 100.0
+	
+	# DEBUG: Log comprehensive statistics
+	var separator = "============================================================"
+	print(separator)
+	print("[DEBUG] WIN PROBABILITY CALCULATION")
+	print(separator)
+	print("Ante: %d | Race Type: %s" % [GameManager.current_ante, GameManager.get_race_type_name()])
+	print("Team Size: %d varsity runners" % GameManager.varsity_team.size())
+	print("")
+	print("PLAYER STRENGTH:")
+	print("  Average Runner Strength: %.2f" % avg_player_strength)
+	print("  Total Team Strength: %.2f" % player_team_strength)
+	print("  Individual Strengths: ", player_performances)
+	print("")
+	print("BOOSTS & EQUIPMENT:")
+	print("  Boosts (Jokers): %d" % GameManager.jokers.size())
+	for boost in GameManager.jokers:
+		var effect = GameManager.get_item_effect(boost, "boosts")
+		print("    - %s: multiplier=%.2f, speed=%d, power=%d, endurance=%d, stamina=%d" % [
+			boost, effect.multiplier, effect.speed, effect.power, effect.endurance, effect.stamina
+		])
+	print("  Equipment: %d items" % GameManager.shop_inventory.size())
+	print("  Deck Cards: %d cards" % GameManager.deck.size())
+	print("")
+	# Calculate average performances across all simulations
+	var avg_player_race_perf = 0.0
+	var avg_opponent_race_perf = 0.0
+	if player_race_performances.size() > 0:
+		for perf in player_race_performances:
+			avg_player_race_perf += perf
+		avg_player_race_perf /= float(player_race_performances.size())
+	if opponent_race_performances.size() > 0:
+		for perf in opponent_race_performances:
+			avg_opponent_race_perf += perf
+		avg_opponent_race_perf /= float(opponent_race_performances.size())
+	
+	print("OPPONENT STRENGTH:")
+	# Calculate target opponent strength for comparison
+	var target_opponent_strength = calculate_target_opponent_strength()
+	var difficulty_multiplier = 1.0 + (pow(GameManager.current_ante, DIFFICULTY_EXPONENT) * BASE_DIFFICULTY_MULTIPLIER)
+	print("  Target Base Strength: %.2f" % target_opponent_strength)
+	print("  Difficulty Multiplier: %.2f (ante %d)" % [difficulty_multiplier, GameManager.current_ante])
+	print("  Effective Opponent Strength: %.2f" % (target_opponent_strength * difficulty_multiplier))
+	print("")
+	print("RACE PERFORMANCE (across all simulations):")
+	print("  Avg Player Performance: %.2f (lower = better finish)" % avg_player_race_perf)
+	print("  Avg Opponent Performance: %.2f (lower = better finish)" % avg_opponent_race_perf)
+	if avg_opponent_race_perf > 0:
+		var perf_ratio = avg_player_race_perf / avg_opponent_race_perf
+		print("  Performance Ratio: %.2f (player/opponent)" % perf_ratio)
+		if perf_ratio > 1.0:
+			print("    ⚠️  Player is SLOWER than opponents (ratio > 1.0)")
+		else:
+			print("    ✓ Player is FASTER than opponents (ratio < 1.0)")
+	print("")
+	print("MONTE CARLO RESULTS:")
+	print("  Simulations: %d" % MONTE_CARLO_ITERATIONS)
+	print("  Wins: %d" % wins)
+	print("  Losses: %d" % (MONTE_CARLO_ITERATIONS - wins))
+	print("  Win Probability: %.2f%%" % win_probability)
+	if win_probability == 0.0:
+		print("  ⚠️  WARNING: Win probability is 0% - opponents may be too strong!")
+	print(separator)
+	
 	# Return win probability as percentage
-	return (float(wins) / float(MONTE_CARLO_ITERATIONS)) * 100.0
+	return win_probability
 
 
 # Simulate a single race (used by Monte Carlo)
@@ -53,9 +160,14 @@ static func _simulate_single_race() -> Dictionary:
 	# Calculate performance for all runners
 	var all_runners: Array[Dictionary] = []
 	
+	# Track player and opponent performances for debugging
+	var player_perfs: Array[float] = []
+	var opponent_perfs: Array[float] = []
+	
 	# Add player varsity runners
 	for runner in GameManager.varsity_team:
 		var performance = calculate_runner_performance(runner, true)
+		player_perfs.append(performance)
 		all_runners.append({
 			"name": runner,
 			"performance": performance,
@@ -68,6 +180,7 @@ static func _simulate_single_race() -> Dictionary:
 		var opponent_team = opponent_teams[team_index]
 		for runner in opponent_team:
 			var performance = calculate_runner_performance(runner, false)  # false = is opponent
+			opponent_perfs.append(performance)
 			all_runners.append({
 				"name": runner,
 				"performance": performance,
@@ -138,6 +251,18 @@ static func _simulate_single_race() -> Dictionary:
 			player_placement = i + 1  # 1st, 2nd, 3rd, etc.
 			break
 	
+	# Calculate average performances for debugging
+	var avg_player_perf = 0.0
+	var avg_opponent_perf = 0.0
+	if player_perfs.size() > 0:
+		for perf in player_perfs:
+			avg_player_perf += perf
+		avg_player_perf /= float(player_perfs.size())
+	if opponent_perfs.size() > 0:
+		for perf in opponent_perfs:
+			avg_opponent_perf += perf
+		avg_opponent_perf /= float(opponent_perfs.size())
+	
 	# Determine win condition
 	var won = false
 	match GameManager.current_race_type:
@@ -150,7 +275,15 @@ static func _simulate_single_race() -> Dictionary:
 		GameManager.RaceType.CHAMPIONSHIP:
 			won = player_placement <= 3  # Top 3
 	
-	return {"won": won}
+	return {
+		"won": won,
+		"player_placement": player_placement,
+		"player_score": player_score,
+		"avg_player_perf": avg_player_perf,
+		"avg_opponent_perf": avg_opponent_perf,
+		"player_perfs": player_perfs,
+		"opponent_perfs": opponent_perfs
+	}
 
 
 # Calculate a runner's race performance score (lower = better finish)
@@ -193,11 +326,14 @@ static func calculate_runner_performance(runner_name: String, is_player: bool = 
 			endurance += card_effect.endurance
 			stamina += card_effect.stamina
 		
-		# Add base stats
-		speed += GameManager.base_speed
-		power += GameManager.base_power
-		endurance += GameManager.base_endurance
-		stamina += GameManager.base_stamina
+		# NOTE: Base stats should NOT be added per-runner in performance calculation
+		# Base stats are team-wide bonuses that are already reflected in runner base stats
+		# Adding them here makes players 3-4x slower than opponents!
+		# The base stats (10 each) were causing player performance to be 15-20 vs opponent 4-5
+		# speed += GameManager.base_speed  # REMOVED - causes massive performance imbalance
+		# power += GameManager.base_power  # REMOVED
+		# endurance += GameManager.base_endurance  # REMOVED
+		# stamina += GameManager.base_stamina  # REMOVED
 		
 		# Apply multiplier to all stats
 		speed = int(speed * multiplier)
@@ -277,11 +413,12 @@ static func calculate_runner_strength(runner_name: String, is_player: bool = tru
 			endurance += card_effect.endurance
 			stamina += card_effect.stamina
 		
-		# Add base stats
-		speed += GameManager.base_speed
-		power += GameManager.base_power
-		endurance += GameManager.base_endurance
-		stamina += GameManager.base_stamina
+		# NOTE: Base stats should NOT be added per-runner in strength calculation either
+		# This matches the performance calculation fix above
+		# speed += GameManager.base_speed  # REMOVED
+		# power += GameManager.base_power  # REMOVED
+		# endurance += GameManager.base_endurance  # REMOVED
+		# stamina += GameManager.base_stamina  # REMOVED
 		
 		# Apply multiplier to all stats
 		speed = int(speed * multiplier)
