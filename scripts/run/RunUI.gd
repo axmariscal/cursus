@@ -252,16 +252,27 @@ func _start_danger_pulse() -> void:
 	if not win_probability_label or not is_instance_valid(win_probability_label):
 		return
 	
+	# Check if node is in the scene tree before creating tween
+	if not is_inside_tree():
+		return
+	
+	var tree = get_tree()
+	if not tree:
+		return
+	
 	# Create a simple pulse animation (fade out then fade in)
-	danger_pulse_tween = get_tree().create_tween()
+	danger_pulse_tween = tree.create_tween()
+	if not danger_pulse_tween:
+		return
+	
 	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 0.5, 0.5)
 	danger_pulse_tween.tween_property(win_probability_label, "modulate:a", 1.0, 0.5)
 	# Restart after completion if still in danger
 	danger_pulse_tween.finished.connect(_restart_danger_pulse)
 
 func _restart_danger_pulse() -> void:
-	# Only restart if still in danger mode
-	if is_in_danger_mode and win_probability_label and is_instance_valid(win_probability_label):
+	# Only restart if still in danger mode and node is in tree
+	if is_in_danger_mode and is_inside_tree() and win_probability_label and is_instance_valid(win_probability_label):
 		_start_danger_pulse()
 
 func stop_danger_effects() -> void:
@@ -575,4 +586,3 @@ func show_purchase_feedback(message: String, is_success: bool) -> void:
 	await tween.finished
 	purchase_feedback_label.visible = false
 	purchase_feedback_label.modulate.a = 1.0
-

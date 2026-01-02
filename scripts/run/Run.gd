@@ -492,21 +492,25 @@ func _on_sell_item_pressed(item_data: Dictionary) -> void:
 	match category:
 		"team":
 			if is_varsity:
-				if GameManager.varsity_team.size() > 5:
+				if GameManager.varsity_team.size() > 5 and index >= 0 and index < GameManager.varsity_team.size():
 					GameManager.remove_varsity_runner(index)
 					sold_successfully = true
 			else:
-				GameManager.remove_jv_runner(index)
-				sold_successfully = true
+				if index >= 0 and index < GameManager.jv_team.size():
+					GameManager.remove_jv_runner(index)
+					sold_successfully = true
 		"deck":
-			GameManager.deck.remove_at(index)
-			sold_successfully = true
+			if index >= 0 and index < GameManager.deck.size():
+				GameManager.deck.remove_at(index)
+				sold_successfully = true
 		"boosts":
-			GameManager.jokers.remove_at(index)
-			sold_successfully = true
+			if index >= 0 and index < GameManager.jokers.size():
+				GameManager.jokers.remove_at(index)
+				sold_successfully = true
 		"equipment":
-			GameManager.shop_inventory.remove_at(index)
-			sold_successfully = true
+			if index >= 0 and index < GameManager.shop_inventory.size():
+				GameManager.shop_inventory.remove_at(index)
+				sold_successfully = true
 	
 	if sold_successfully:
 		GameManager.earn_gold(sell_price)
