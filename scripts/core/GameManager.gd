@@ -35,25 +35,157 @@ var base_endurance := 10
 var base_stamina := 10
 var base_power := 10
 
+# ============================================
+# DIVISION SYSTEM
+# ============================================
 
-func start_new_run():
+var current_division: String = "high_school"
+var division_config: Dictionary = {}
+
+# Division definitions
+const DIVISIONS = {
+	"middle_school": {
+		"name": "Middle School",
+		"starting_gold": 50,
+		"antes": 3,
+		"difficulty_curve": 0.10,
+		"reward_multiplier": 0.5,
+		"starting_team_tier": "basic",
+		"unlock_requirement": null,
+		"description": "Start your running journey"
+	},
+	"high_school": {
+		"name": "High School",
+		"starting_gold": 100,
+		"antes": 5,
+		"difficulty_curve": 0.15,
+		"reward_multiplier": 1.0,
+		"starting_team_tier": "common",
+		"unlock_requirement": "middle_school",
+		"description": "Competitive high school racing"
+	},
+	"junior_college": {
+		"name": "Junior College",
+		"starting_gold": 120,
+		"antes": 6,
+		"difficulty_curve": 0.18,
+		"reward_multiplier": 1.2,
+		"starting_team_tier": "common+",
+		"unlock_requirement": "high_school",
+		"description": "Step up to college competition"
+	},
+	"d3": {
+		"name": "Division 3",
+		"starting_gold": 150,
+		"antes": 8,
+		"difficulty_curve": 0.20,
+		"reward_multiplier": 1.5,
+		"starting_team_tier": "rare",
+		"unlock_requirement": "junior_college",
+		"description": "NCAA Division 3 competition"
+	},
+	"d2": {
+		"name": "Division 2",
+		"starting_gold": 180,
+		"antes": 10,
+		"difficulty_curve": 0.22,
+		"reward_multiplier": 1.8,
+		"starting_team_tier": "rare+",
+		"unlock_requirement": "d3",
+		"description": "NCAA Division 2 - serious competition"
+	},
+	"d1": {
+		"name": "Division 1",
+		"starting_gold": 200,
+		"antes": 12,
+		"difficulty_curve": 0.25,
+		"reward_multiplier": 2.0,
+		"starting_team_tier": "epic",
+		"unlock_requirement": "d2",
+		"description": "Elite NCAA Division 1 racing"
+	},
+	"post_collegiate": {
+		"name": "Post Collegiate",
+		"starting_gold": 150,
+		"antes": 10,
+		"difficulty_curve": 0.28,
+		"reward_multiplier": 2.2,
+		"starting_team_tier": "epic",
+		"unlock_requirement": "d1",
+		"special_rule": "limited_funding",
+		"description": "Limited funding, maximum effort"
+	},
+	"professional": {
+		"name": "Professional",
+		"starting_gold": 250,
+		"antes": 15,
+		"difficulty_curve": 0.30,
+		"reward_multiplier": 2.5,
+		"starting_team_tier": "legendary",
+		"unlock_requirement": "post_collegiate",
+		"description": "Professional racing circuit"
+	},
+	"world_contender": {
+		"name": "World Contender",
+		"starting_gold": 300,
+		"antes": 20,
+		"difficulty_curve": 0.35,
+		"reward_multiplier": 3.0,
+		"starting_team_tier": "legendary",
+		"unlock_requirement": "professional",
+		"description": "Elite world-class competition"
+	}
+}
+
+# Track unlocked divisions (start with middle_school and high_school)
+var unlocked_divisions = ["middle_school", "high_school"]
+
+func is_division_unlocked(division_key: String) -> bool:
+	return unlocked_divisions.has(division_key)
+
+func unlock_division(division_key: String) -> void:
+	if not unlocked_divisions.has(division_key):
+		unlocked_divisions.append(division_key)
+		print("Unlocked division: ", division_key)
+		# TODO: Save to file for persistence
+
+func get_division_config(division_key: String) -> Dictionary:
+	if DIVISIONS.has(division_key):
+		return DIVISIONS[division_key]
+	return {}
+
+func start_new_run(division_key: String = "high_school"):
+	# Set division
+	current_division = division_key
+	division_config = get_division_config(division_key)
+	
+	# Initialize run state
 	seed = randi()
 	race_counter = 0  # Reset race counter for new run
 	randomize()
 	current_ante = 1
+	max_ante = division_config.get("antes", 5)
 	current_race_type = get_race_type_for_ante(current_ante)
 	run_active = true
-	gold = 100  # Starting gold
+	
+	# Set starting gold based on division
+	gold = division_config.get("starting_gold", 100)
+	
+	# Clear all collections
 	varsity_team.clear()
 	jv_team.clear()
 	deck.clear()
 	jokers.clear()
 	shop_inventory.clear()
 	
-	# Give starting runners (5 basic varsity runners)
-	_give_starting_runners()
+	# Give starting team based on division tier
+	var tier = division_config.get("starting_team_tier", "common")
+	_give_starting_team_for_division(tier)
 	
-	print("New run started with seed: ", seed, " Gold: ", gold, " Race Type: ", get_race_type_name())
+	# Apply special rules
+	_apply_division_special_rules(division_config)
+	
+	print("New run started - Division: ", division_config.get("name", "Unknown"), " Seed: ", seed, " Gold: ", gold, " Max Antes: ", max_ante)
 
 
 func _give_starting_runners():
@@ -72,12 +204,104 @@ func _give_starting_runners():
 	
 	print("Starting team: ", varsity_team.size(), " varsity runners")
 
+func _give_starting_team_for_division(tier: String) -> void:
+	match tier:
+		"basic":
+			# 5 very basic runners (all Freshman Walk-on)
+			for i in range(5):
+				add_varsity_runner("Runner: Freshman Walk-on")
+		"common":
+			# Mix of common runners (current system)
+			_give_starting_runners()
+		"common+":
+			# Common runners + 1 rare
+			_give_starting_runners()
+			# Replace one with a better runner
+			if varsity_team.size() > 0:
+				varsity_team[0] = "Runner: Track Tourist"
+		"rare":
+			# Mix of rare runners
+			var rare_runners = [
+				"Runner: Track Tourist",
+				"Runner: Short-Cutter",
+				"Runner: Hill Specialist",
+				"Runner: Tempo Runner",
+				"Runner: The Closer"
+			]
+			for runner in rare_runners:
+				add_varsity_runner(runner)
+		"rare+":
+			# Rare runners + 1 epic
+			var rare_plus_runners = [
+				"Runner: Track Tourist",
+				"Runner: Short-Cutter",
+				"Runner: Elite V-State Harrier",
+				"Runner: Tempo Runner",
+				"Runner: The Closer"
+			]
+			for runner in rare_plus_runners:
+				add_varsity_runner(runner)
+		"epic":
+			# Epic runners
+			var epic_runners = [
+				"Runner: Elite V-State Harrier",
+				"Runner: All-Terrain Captain",
+				"Runner: Ghost of the Woods",
+				"Runner: Track Tourist",
+				"Runner: The Closer"
+			]
+			for runner in epic_runners:
+				add_varsity_runner(runner)
+		"legendary":
+			# Best starting team
+			var legendary_runners = [
+				"Runner: The Legend",
+				"Runner: Elite V-State Harrier",
+				"Runner: All-Terrain Captain",
+				"Runner: Ghost of the Woods",
+				"Runner: Track Tourist"
+			]
+			for runner in legendary_runners:
+				add_varsity_runner(runner)
+		_:
+			# Default to common
+			_give_starting_runners()
+	
+	print("Starting team (tier: ", tier, "): ", varsity_team.size(), " varsity runners")
+
+func _apply_division_special_rules(config: Dictionary) -> void:
+	# Apply special rules based on division
+	var special_rule = config.get("special_rule", "")
+	match special_rule:
+		"limited_funding":
+			# Post Collegiate: Shop items cost more (handled in Shop.gd)
+			pass  # Will be checked in shop pricing
+		_:
+			pass
+
 
 func advance_ante():
 	current_ante += 1
+	# Check if we've reached max ante for this division
+	if current_ante > max_ante:
+		current_ante = max_ante
+		print("Reached max ante for division: ", max_ante)
+	
 	# Update race type for new ante
 	current_race_type = get_race_type_for_ante(current_ante)
 	print("Advanced to ante ", current_ante, " Race Type: ", _get_race_type_name(current_race_type))
+	
+	# Check if we completed the division (unlock next one)
+	if current_ante >= max_ante:
+		_check_division_completion()
+
+func _check_division_completion() -> void:
+	# Find what division this one unlocks
+	for key in DIVISIONS:
+		var config = DIVISIONS[key]
+		if config.get("unlock_requirement") == current_division:
+			unlock_division(key)
+			print("Completed division! Unlocked: ", config.get("name", key))
 
 # ============================================
 # RACE TYPE SYSTEM
@@ -165,7 +389,10 @@ func calculate_race_reward() -> int:
 		_:
 			race_type_multiplier = 1.0  # Base
 	
-	return int(base_reward * race_type_multiplier)
+	# Apply division reward multiplier
+	var division_multiplier = division_config.get("reward_multiplier", 1.0)
+	
+	return int(base_reward * race_type_multiplier * division_multiplier)
 
 func calculate_consolation_reward() -> int:
 	# Consolation reward for losing: 35% of win reward

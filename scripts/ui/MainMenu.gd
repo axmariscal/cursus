@@ -292,9 +292,8 @@ func _update_continue_button() -> void:
 		continue_card.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Full opacity
 
 func _on_new_run_pressed() -> void:
-	# Start a new run and transition to Run scene
-	GameManager.start_new_run()
-	get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
+	# Navigate to division selection scene
+	get_tree().change_scene_to_file("res://scenes/core/DivisionSelectScene.tscn")
 
 func _on_continue_pressed() -> void:
 	# Continue existing run if one is active

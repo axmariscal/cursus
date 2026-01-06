@@ -154,7 +154,16 @@ func _get_item_price(category: String, base_name: String, rarity: ItemRarity = I
 	
 	# Scale price with ante (later antes = slightly more expensive)
 	var ante_modifier = 1.0 + (GameManager.current_ante * 0.05)  # 5% increase per ante
-	return int(base_price * ante_modifier)
+	var final_price = int(base_price * ante_modifier)
+	
+	# Apply division special rules
+	if GameManager.division_config.has("special_rule"):
+		match GameManager.division_config.get("special_rule"):
+			"limited_funding":
+				# Post Collegiate: Items cost 1.5x more
+				final_price = int(final_price * 1.5)
+	
+	return final_price
 
 func _get_item_rarity(category: String, base_name: String) -> ItemRarity:
 	# Determine if item is rare or epic
