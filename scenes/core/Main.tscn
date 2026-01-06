@@ -311,7 +311,7 @@ size_flags_horizontal = 4
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
-text = "v0.2.2-alpha"
+text = "v0.35-alpha"
 vertical_alignment = 1
 
 [node name="FooterSpacer" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/FooterSection"]
