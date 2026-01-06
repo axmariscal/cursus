@@ -39,12 +39,25 @@ var base_power := 10
 # DIVISION SYSTEM
 # ============================================
 
-var current_division: String = "high_school"
+enum Division {
+	MIDDLE_SCHOOL,
+	HIGH_SCHOOL,
+	JUNIOR_COLLEGE,
+	D3,
+	D2,
+	D1,
+	POST_COLLEGIATE,
+	PROFESSIONAL,
+	WORLD_CONTENDER
+}
+
+var current_division: Division = Division.HIGH_SCHOOL
+var unlocked_divisions: Array[Division] = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
 var division_config: Dictionary = {}
 
-# Division definitions
-const DIVISIONS = {
-	"middle_school": {
+# Division definitions - using enum as keys
+const DIVISION_DATA = {
+	Division.MIDDLE_SCHOOL: {
 		"name": "Middle School",
 		"starting_gold": 50,
 		"antes": 3,
@@ -52,232 +65,474 @@ const DIVISIONS = {
 		"reward_multiplier": 0.5,
 		"starting_team_tier": "basic",
 		"unlock_requirement": null,
+		"special_rules": [],
 		"description": "Start your running journey"
 	},
-	"high_school": {
+	Division.HIGH_SCHOOL: {
 		"name": "High School",
 		"starting_gold": 100,
 		"antes": 5,
 		"difficulty_curve": 0.15,
 		"reward_multiplier": 1.0,
 		"starting_team_tier": "common",
-		"unlock_requirement": "middle_school",
+		"unlock_requirement": Division.MIDDLE_SCHOOL,
+		"special_rules": [],
 		"description": "Competitive high school racing"
 	},
-	"junior_college": {
+	Division.JUNIOR_COLLEGE: {
 		"name": "Junior College",
 		"starting_gold": 120,
 		"antes": 6,
 		"difficulty_curve": 0.18,
 		"reward_multiplier": 1.2,
 		"starting_team_tier": "common+",
-		"unlock_requirement": "high_school",
+		"unlock_requirement": Division.HIGH_SCHOOL,
+		"special_rules": [],
 		"description": "Step up to college competition"
 	},
-	"d3": {
+	Division.D3: {
 		"name": "Division 3",
 		"starting_gold": 150,
 		"antes": 8,
 		"difficulty_curve": 0.20,
 		"reward_multiplier": 1.5,
 		"starting_team_tier": "rare",
-		"unlock_requirement": "junior_college",
+		"unlock_requirement": Division.JUNIOR_COLLEGE,
+		"special_rules": [],
 		"description": "NCAA Division 3 competition"
 	},
-	"d2": {
+	Division.D2: {
 		"name": "Division 2",
 		"starting_gold": 180,
 		"antes": 10,
 		"difficulty_curve": 0.22,
 		"reward_multiplier": 1.8,
 		"starting_team_tier": "rare+",
-		"unlock_requirement": "d3",
+		"unlock_requirement": Division.D3,
+		"special_rules": [],
 		"description": "NCAA Division 2 - serious competition"
 	},
-	"d1": {
+	Division.D1: {
 		"name": "Division 1",
 		"starting_gold": 200,
 		"antes": 12,
 		"difficulty_curve": 0.25,
 		"reward_multiplier": 2.0,
 		"starting_team_tier": "epic",
-		"unlock_requirement": "d2",
+		"unlock_requirement": Division.D2,
+		"special_rules": [],
 		"description": "Elite NCAA Division 1 racing"
 	},
-	"post_collegiate": {
+	Division.POST_COLLEGIATE: {
 		"name": "Post Collegiate",
 		"starting_gold": 150,
 		"antes": 10,
 		"difficulty_curve": 0.28,
 		"reward_multiplier": 2.2,
 		"starting_team_tier": "epic",
-		"unlock_requirement": "d1",
-		"special_rule": "limited_funding",
+		"unlock_requirement": Division.D1,
+		"special_rules": ["limited_funding"],
 		"description": "Limited funding, maximum effort"
 	},
-	"professional": {
+	Division.PROFESSIONAL: {
 		"name": "Professional",
 		"starting_gold": 250,
 		"antes": 15,
 		"difficulty_curve": 0.30,
 		"reward_multiplier": 2.5,
 		"starting_team_tier": "legendary",
-		"unlock_requirement": "post_collegiate",
+		"unlock_requirement": Division.POST_COLLEGIATE,
+		"special_rules": [],
 		"description": "Professional racing circuit"
 	},
-	"world_contender": {
+	Division.WORLD_CONTENDER: {
 		"name": "World Contender",
 		"starting_gold": 300,
 		"antes": 20,
 		"difficulty_curve": 0.35,
 		"reward_multiplier": 3.0,
 		"starting_team_tier": "legendary",
-		"unlock_requirement": "professional",
+		"unlock_requirement": Division.PROFESSIONAL,
+		"special_rules": [],
 		"description": "Elite world-class competition"
 	}
 }
 
-# Track unlocked divisions (start with middle_school and high_school)
-var unlocked_divisions = ["middle_school", "high_school"]
+# Runner rarity classifications
+const RUNNER_TIERS = {
+	"basic": [
+		"Runner: Freshman Walk-on"  # Only basic runner
+	],
+	"common": [
+		"Runner: Freshman Walk-on",
+		"Runner: Hill Specialist",
+		"Runner: Steady State Runner",
+		"Runner: Tempo Runner",
+		"Runner: The Closer"
+	],
+	"rare": [
+		"Runner: Track Tourist",
+		"Runner: Short-Cutter",
+		"Runner: Hill Specialist",  # Can appear in multiple tiers
+		"Runner: Tempo Runner",
+		"Runner: The Closer"
+	],
+	"epic": [
+		"Runner: Elite V-State Harrier",
+		"Runner: All-Terrain Captain",
+		"Runner: Caffeine Fiend",
+		"Runner: Ghost of the Woods",
+		"Runner: Track Tourist"  # Strong common runner
+	],
+	"legendary": [
+		"Runner: The Legend",
+		"Runner: Elite V-State Harrier",
+		"Runner: All-Terrain Captain",
+		"Runner: Ghost of the Woods",
+		"Runner: JV Legend"  # Balanced legendary
+	]
+}
 
-func is_division_unlocked(division_key: String) -> bool:
-	return unlocked_divisions.has(division_key)
+# Save file path for unlocks
+const UNLOCKS_SAVE_PATH = "user://unlocks.save"
 
-func unlock_division(division_key: String) -> void:
-	if not unlocked_divisions.has(division_key):
-		unlocked_divisions.append(division_key)
-		print("Unlocked division: ", division_key)
-		# TODO: Save to file for persistence
+func _ready() -> void:
+	# Load unlocked divisions on game start
+	load_unlocks()
 
-func get_division_config(division_key: String) -> Dictionary:
-	if DIVISIONS.has(division_key):
-		return DIVISIONS[division_key]
+func is_division_unlocked(division: Division) -> bool:
+	return unlocked_divisions.has(division)
+
+func unlock_division(division: Division) -> void:
+	if not unlocked_divisions.has(division):
+		unlocked_divisions.append(division)
+		save_unlocks()  # Persist to file
+		show_unlock_notification(division)
+
+func get_next_unlock(completed_division: Division) -> Division:
+	# Find what division this one unlocks
+	for div in Division.values():
+		if DIVISION_DATA.has(div):
+			var data = DIVISION_DATA[div]
+			if data.get("unlock_requirement") == completed_division:
+				return div
+	return -1  # No unlock
+
+func get_division_config(division: Division) -> Dictionary:
+	if DIVISION_DATA.has(division):
+		return DIVISION_DATA[division]
 	return {}
 
-func start_new_run(division_key: String = "high_school"):
-	# Set division
-	current_division = division_key
-	division_config = get_division_config(division_key)
+func save_unlocks() -> void:
+	# Convert enum array to string array for JSON serialization
+	var unlock_strings: Array[String] = []
+	for div in unlocked_divisions:
+		unlock_strings.append(_division_to_string(div))
 	
-	# Initialize run state
+	var save_data = {
+		"unlocked_divisions": unlock_strings,
+		"version": 1
+	}
+	
+	var file = FileAccess.open(UNLOCKS_SAVE_PATH, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(save_data)
+		file.store_string(json_string)
+		file.close()
+		print("Saved unlocks to: ", UNLOCKS_SAVE_PATH)
+	else:
+		print("Error: Could not save unlocks to file")
+
+func load_unlocks() -> void:
+	if not FileAccess.file_exists(UNLOCKS_SAVE_PATH):
+		# First time - use defaults
+		unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+		return
+	
+	var file = FileAccess.open(UNLOCKS_SAVE_PATH, FileAccess.READ)
+	if file:
+		var json_string = file.get_as_text()
+		file.close()
+		
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		
+		if parse_result == OK:
+			var save_data = json.data
+			if save_data.has("unlocked_divisions"):
+				unlocked_divisions.clear()
+				for div_string in save_data.unlocked_divisions:
+					var div = _string_to_division(div_string)
+					if div != -1:
+						unlocked_divisions.append(div)
+				print("Loaded unlocks: ", unlocked_divisions.size(), " divisions")
+			else:
+				# Fallback to defaults if format is wrong
+				unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+		else:
+			print("Error parsing unlocks file, using defaults")
+			unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+	else:
+		print("Error: Could not load unlocks file, using defaults")
+		unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+
+func _division_to_string(division: Division) -> String:
+	match division:
+		Division.MIDDLE_SCHOOL:
+			return "middle_school"
+		Division.HIGH_SCHOOL:
+			return "high_school"
+		Division.JUNIOR_COLLEGE:
+			return "junior_college"
+		Division.D3:
+			return "d3"
+		Division.D2:
+			return "d2"
+		Division.D1:
+			return "d1"
+		Division.POST_COLLEGIATE:
+			return "post_collegiate"
+		Division.PROFESSIONAL:
+			return "professional"
+		Division.WORLD_CONTENDER:
+			return "world_contender"
+		_:
+			return ""
+
+func _string_to_division(div_string: String) -> Division:
+	match div_string:
+		"middle_school":
+			return Division.MIDDLE_SCHOOL
+		"high_school":
+			return Division.HIGH_SCHOOL
+		"junior_college":
+			return Division.JUNIOR_COLLEGE
+		"d3":
+			return Division.D3
+		"d2":
+			return Division.D2
+		"d1":
+			return Division.D1
+		"post_collegiate":
+			return Division.POST_COLLEGIATE
+		"professional":
+			return Division.PROFESSIONAL
+		"world_contender":
+			return Division.WORLD_CONTENDER
+		_:
+			return -1
+
+func show_unlock_notification(division: Division) -> void:
+	var config = get_division_config(division)
+	var division_name = config.get("name", "Unknown Division")
+	print("🎉 UNLOCKED: %s" % division_name)
+	# TODO: Show in-game notification/popup
+	# For now, just print to console
+
+func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
+	current_division = division
+	division_config = DIVISION_DATA[division]
+	
+	# Set run parameters
 	seed = randi()
-	race_counter = 0  # Reset race counter for new run
+	race_counter = 0
 	randomize()
 	current_ante = 1
 	max_ante = division_config.get("antes", 5)
 	current_race_type = get_race_type_for_ante(current_ante)
 	run_active = true
 	
-	# Set starting gold based on division
+	# Set starting gold
 	gold = division_config.get("starting_gold", 100)
 	
-	# Clear all collections
+	# Clear collections
 	varsity_team.clear()
 	jv_team.clear()
 	deck.clear()
 	jokers.clear()
 	shop_inventory.clear()
 	
-	# Give starting team based on division tier
-	var tier = division_config.get("starting_team_tier", "common")
-	_give_starting_team_for_division(tier)
+	# Give starting team based on tier
+	_give_starting_team_for_division(division_config.get("starting_team_tier", "common"))
 	
 	# Apply special rules
-	_apply_division_special_rules(division_config)
+	_apply_division_special_rules(division_config.get("special_rules", []))
 	
-	print("New run started - Division: ", division_config.get("name", "Unknown"), " Seed: ", seed, " Gold: ", gold, " Max Antes: ", max_ante)
+	print("New run started: %s | Gold: %d | Antes: %d" % [
+		division_config.get("name", "Unknown"), gold, max_ante
+	])
 
-
-func _give_starting_runners():
-	# Give 5 balanced starting runners for varsity team
-	# Mix of different types for variety
-	var starting_runners = [
-		"Runner: Hill Specialist",
-		"Runner: Steady State Runner",
-		"Runner: Tempo Runner",
-		"Runner: The Closer",
-		"Runner: Freshman Walk-on"
-	]
-	
-	for runner in starting_runners:
-		add_varsity_runner(runner)
-	
-	print("Starting team: ", varsity_team.size(), " varsity runners")
 
 func _give_starting_team_for_division(tier: String) -> void:
+	# Clear existing team first
+	varsity_team.clear()
+	
 	match tier:
 		"basic":
-			# 5 very basic runners (all Freshman Walk-on)
-			for i in range(5):
-				add_varsity_runner("Runner: Freshman Walk-on")
+			# Middle School: 5 Freshman Walk-ons (weakest team)
+			_give_basic_team()
 		"common":
-			# Mix of common runners (current system)
-			_give_starting_runners()
+			# High School: Balanced mix of common runners
+			_give_common_team()
 		"common+":
-			# Common runners + 1 rare
-			_give_starting_runners()
-			# Replace one with a better runner
-			if varsity_team.size() > 0:
-				varsity_team[0] = "Runner: Track Tourist"
+			# Junior College: Common team with 1 rare upgrade
+			_give_common_plus_team()
 		"rare":
-			# Mix of rare runners
-			var rare_runners = [
-				"Runner: Track Tourist",
-				"Runner: Short-Cutter",
-				"Runner: Hill Specialist",
-				"Runner: Tempo Runner",
-				"Runner: The Closer"
-			]
-			for runner in rare_runners:
-				add_varsity_runner(runner)
+			# D3: Mix of rare runners with good stats
+			_give_rare_team()
 		"rare+":
-			# Rare runners + 1 epic
-			var rare_plus_runners = [
-				"Runner: Track Tourist",
-				"Runner: Short-Cutter",
-				"Runner: Elite V-State Harrier",
-				"Runner: Tempo Runner",
-				"Runner: The Closer"
-			]
-			for runner in rare_plus_runners:
-				add_varsity_runner(runner)
+			# D2: Rare team with 1 epic upgrade
+			_give_rare_plus_team()
 		"epic":
-			# Epic runners
-			var epic_runners = [
-				"Runner: Elite V-State Harrier",
-				"Runner: All-Terrain Captain",
-				"Runner: Ghost of the Woods",
-				"Runner: Track Tourist",
-				"Runner: The Closer"
-			]
-			for runner in epic_runners:
-				add_varsity_runner(runner)
+			# D1 & Post Collegiate: Strong epic runners
+			_give_epic_team()
 		"legendary":
-			# Best starting team
-			var legendary_runners = [
-				"Runner: The Legend",
-				"Runner: Elite V-State Harrier",
-				"Runner: All-Terrain Captain",
-				"Runner: Ghost of the Woods",
-				"Runner: Track Tourist"
-			]
-			for runner in legendary_runners:
-				add_varsity_runner(runner)
+			# Professional & World Contender: Best starting team
+			_give_legendary_team()
 		_:
-			# Default to common
-			_give_starting_runners()
+			# Fallback to common
+			print("Unknown tier: ", tier, ", defaulting to common")
+			_give_common_team()
 	
-	print("Starting team (tier: ", tier, "): ", varsity_team.size(), " varsity runners")
+	print("Starting team (tier: %s): %d varsity runners" % [tier, varsity_team.size()])
+	_log_team_stats()
 
-func _apply_division_special_rules(config: Dictionary) -> void:
+# Helper function to log team stats for debugging
+func _log_team_stats() -> void:
+	var total_speed = 0
+	var total_power = 0
+	var total_endurance = 0
+	var total_stamina = 0
+	
+	for runner in varsity_team:
+		var effect = get_item_effect(runner, "team")
+		total_speed += effect.speed
+		total_power += effect.power
+		total_endurance += effect.endurance
+		total_stamina += effect.stamina
+	
+	print("Team Stats - Speed: %d, Power: %d, Endurance: %d, Stamina: %d" % [
+		total_speed, total_power, total_endurance, total_stamina
+	])
+
+func _give_basic_team() -> void:
+	# 5 Freshman Walk-ons (5/5/5/5 each = 25/25/25/25 total)
+	for i in range(5):
+		add_varsity_runner("Runner: Freshman Walk-on")
+
+func _give_common_team() -> void:
+	# Use seed for deterministic but varied teams
+	seed(seed)
+	
+	var team_variants = [
+		# Variant 1: Balanced (default)
+		[
+			"Runner: Hill Specialist",
+			"Runner: Steady State Runner",
+			"Runner: Tempo Runner",
+			"Runner: The Closer",
+			"Runner: Freshman Walk-on"
+		],
+		# Variant 2: Speed-focused
+		[
+			"Runner: The Closer",
+			"Runner: Tempo Runner",
+			"Runner: Tempo Runner",
+			"Runner: Hill Specialist",
+			"Runner: Freshman Walk-on"
+		],
+		# Variant 3: Endurance-focused
+		[
+			"Runner: Steady State Runner",
+			"Runner: Steady State Runner",
+			"Runner: Tempo Runner",
+			"Runner: Hill Specialist",
+			"Runner: Freshman Walk-on"
+		]
+	]
+	
+	var selected_variant = team_variants[randi() % team_variants.size()]
+	
+	for runner in selected_variant:
+		add_varsity_runner(runner)
+	
+	randomize()  # Restore global RNG
+
+func _give_common_plus_team() -> void:
+	# Common team but replace one with Track Tourist (rare)
+	# Total stats: ~75-85 per stat
+	var common_plus_runners = [
+		"Runner: Track Tourist",         # Speed: 22, Power: -5 (rare upgrade)
+		"Runner: Hill Specialist",       # Power: 15, Speed: 5
+		"Runner: Steady State Runner",   # Endurance: 15, Stamina: 10
+		"Runner: Tempo Runner",          # Endurance: 10, Speed: 10
+		"Runner: The Closer"             # Speed: 15, Stamina: 5
+	]
+	
+	for runner in common_plus_runners:
+		add_varsity_runner(runner)
+
+func _give_rare_team() -> void:
+	# Mix of rare runners with strong stats
+	# Total stats: ~90-100 per stat
+	var rare_runners = [
+		"Runner: Track Tourist",         # Speed: 22, Power: -5
+		"Runner: Short-Cutter",          # Speed: 12, Endurance: 8
+		"Runner: Hill Specialist",       # Power: 15, Speed: 5
+		"Runner: Tempo Runner",          # Endurance: 10, Speed: 10
+		"Runner: The Closer"             # Speed: 15, Stamina: 5
+	]
+	
+	for runner in rare_runners:
+		add_varsity_runner(runner)
+
+func _give_rare_plus_team() -> void:
+	# Rare team with 1 epic upgrade (Elite V-State Harrier)
+	# Total stats: ~110-120 per stat
+	var rare_plus_runners = [
+		"Runner: Elite V-State Harrier", # Speed: 25, Power: 15 (epic)
+		"Runner: Track Tourist",         # Speed: 22, Power: -5
+		"Runner: Short-Cutter",          # Speed: 12, Endurance: 8
+		"Runner: Tempo Runner",          # Endurance: 10, Speed: 10
+		"Runner: The Closer"             # Speed: 15, Stamina: 5
+	]
+	
+	for runner in rare_plus_runners:
+		add_varsity_runner(runner)
+
+func _give_epic_team() -> void:
+	# Strong epic runners with diverse stat profiles
+	# Total stats: ~130-150 per stat
+	var epic_runners = [
+		"Runner: Elite V-State Harrier", # Speed: 25, Power: 15
+		"Runner: All-Terrain Captain",   # Speed: 18, Endurance: 18, Stamina: 15, Power: 12
+		"Runner: Ghost of the Woods",    # Endurance: 20, Power: 12
+		"Runner: Track Tourist",         # Speed: 22, Power: -5
+		"Runner: The Closer"             # Speed: 15, Stamina: 5
+	]
+	
+	for runner in epic_runners:
+		add_varsity_runner(runner)
+
+func _give_legendary_team() -> void:
+	# Best starting team - all legendary/epic runners
+	# Total stats: ~150-180 per stat
+	var legendary_runners = [
+		"Runner: The Legend",            # Speed: 30, Endurance: 30 (best runner)
+		"Runner: Elite V-State Harrier", # Speed: 25, Power: 15
+		"Runner: All-Terrain Captain",    # Speed: 18, Endurance: 18, Stamina: 15, Power: 12
+		"Runner: Ghost of the Woods",     # Endurance: 20, Power: 12
+		"Runner: JV Legend"               # Balanced: 10/10/10/10
+	]
+	
+	for runner in legendary_runners:
+		add_varsity_runner(runner)
+
+func _apply_division_special_rules(special_rules: Array) -> void:
 	# Apply special rules based on division
-	var special_rule = config.get("special_rule", "")
-	match special_rule:
-		"limited_funding":
-			# Post Collegiate: Shop items cost more (handled in Shop.gd)
-			pass  # Will be checked in shop pricing
-		_:
-			pass
+	# Rules are checked in relevant systems (e.g., Shop.gd checks for "limited_funding")
+	# This function is here for any initialization needed
+	pass
 
 
 func advance_ante():
@@ -297,11 +552,11 @@ func advance_ante():
 
 func _check_division_completion() -> void:
 	# Find what division this one unlocks
-	for key in DIVISIONS:
-		var config = DIVISIONS[key]
-		if config.get("unlock_requirement") == current_division:
-			unlock_division(key)
-			print("Completed division! Unlocked: ", config.get("name", key))
+	var next_unlock = get_next_unlock(current_division)
+	if next_unlock != -1:
+		unlock_division(next_unlock)
+		var config = get_division_config(next_unlock)
+		print("Completed division! Unlocked: ", config.get("name", "Unknown"))
 
 # ============================================
 # RACE TYPE SYSTEM
@@ -920,3 +1175,19 @@ func simulate_race() -> Dictionary:
 		"total_teams": team_scores.size(),
 		"all_runners": all_runners  # For detailed display
 	}
+
+# ============================================
+# TESTING & VALIDATION
+# ============================================
+
+# Add to GameManager.gd for testing
+func test_all_tiers() -> void:
+	var tiers = ["basic", "common", "common+", "rare", "rare+", "epic", "legendary"]
+	
+	for tier in tiers:
+		print("\n=== Testing Tier: %s ===" % tier)
+		varsity_team.clear()
+		_give_starting_team_for_division(tier)
+		
+		if varsity_team.size() != 5:
+			print("ERROR: Team size is %d, expected 5!" % varsity_team.size())

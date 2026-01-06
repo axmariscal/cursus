@@ -105,11 +105,11 @@ func get_result_message(race_result: Dictionary) -> String:
 			result_message += "\n🏆 DIVISION COMPLETE! 🏆\n"
 			result_message += "You've completed %s!\n" % GameManager.division_config.get("name", "this division")
 			# Check what was unlocked
-			for key in GameManager.DIVISIONS:
-				var config = GameManager.DIVISIONS[key]
-				if config.get("unlock_requirement") == GameManager.current_division:
-					if GameManager.is_division_unlocked(key):
-						result_message += "Unlocked: %s" % config.get("name", key)
+			var next_unlock = GameManager.get_next_unlock(GameManager.current_division)
+			if next_unlock != -1:
+				var config = GameManager.get_division_config(next_unlock)
+				if GameManager.is_division_unlocked(next_unlock):
+					result_message += "Unlocked: %s" % config.get("name", "Unknown")
 	else:
 		result_message += "Run Ended at Ante %d" % completed_ante
 	

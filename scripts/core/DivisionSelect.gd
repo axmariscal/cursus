@@ -47,29 +47,29 @@ func _create_division_cards() -> void:
 	
 	# Create cards for each division
 	var division_order = [
-		"middle_school",
-		"high_school",
-		"junior_college",
-		"d3",
-		"d2",
-		"d1",
-		"post_collegiate",
-		"professional",
-		"world_contender"
+		GameManager.Division.MIDDLE_SCHOOL,
+		GameManager.Division.HIGH_SCHOOL,
+		GameManager.Division.JUNIOR_COLLEGE,
+		GameManager.Division.D3,
+		GameManager.Division.D2,
+		GameManager.Division.D1,
+		GameManager.Division.POST_COLLEGIATE,
+		GameManager.Division.PROFESSIONAL,
+		GameManager.Division.WORLD_CONTENDER
 	]
 	
-	for division_key in division_order:
-		var card = _create_division_card(division_key)
+	for division in division_order:
+		var card = _create_division_card(division)
 		if card:
 			division_grid.add_child(card)
 			division_cards.append(card)
 
-func _create_division_card(division_key: String) -> Control:
-	var config = GameManager.get_division_config(division_key)
+func _create_division_card(division: GameManager.Division) -> Control:
+	var config = GameManager.get_division_config(division)
 	if config.is_empty():
 		return null
 	
-	var is_unlocked = GameManager.is_division_unlocked(division_key)
+	var is_unlocked = GameManager.is_division_unlocked(division)
 	
 	# Create card container
 	var card_container = PanelContainer.new()
@@ -90,7 +90,7 @@ func _create_division_card(division_key: String) -> Control:
 	
 	# Division name
 	var name_label = Label.new()
-	name_label.text = config.get("name", division_key)
+	name_label.text = config.get("name", "Unknown")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 20)
 	name_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))
@@ -142,7 +142,7 @@ func _create_division_card(division_key: String) -> Control:
 	select_button.text = "Select" if is_unlocked else "Locked"
 	select_button.disabled = not is_unlocked
 	select_button.custom_minimum_size = Vector2(0, 35)
-	select_button.pressed.connect(_on_division_selected.bind(division_key))
+	select_button.pressed.connect(_on_division_selected.bind(division))
 	card_content.add_child(select_button)
 	
 	# Style the card
@@ -201,9 +201,9 @@ func _style_division_button(button: Button, is_unlocked: bool) -> void:
 	style_hover.bg_color = style_normal.bg_color.lightened(0.15)
 	button.add_theme_stylebox_override("hover", style_hover)
 
-func _on_division_selected(division_key: String) -> void:
+func _on_division_selected(division: GameManager.Division) -> void:
 	# Start new run with selected division
-	GameManager.start_new_run(division_key)
+	GameManager.start_new_run(division)
 	get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
 
 func _on_back_pressed() -> void:
