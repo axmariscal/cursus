@@ -54,6 +54,7 @@ enum Division {
 var current_division: Division = Division.HIGH_SCHOOL
 var unlocked_divisions: Array[Division] = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
 var division_config: Dictionary = {}
+var newly_unlocked_divisions: Array[Division] = []
 
 # Track special rule modifiers
 var shop_price_multiplier: float = 1.0
@@ -214,8 +215,15 @@ func is_division_unlocked(division: Division) -> bool:
 func unlock_division(division: Division) -> void:
 	if not unlocked_divisions.has(division):
 		unlocked_divisions.append(division)
+		newly_unlocked_divisions.append(division)  # Track as newly unlocked
 		save_unlocks()  # Persist to file
 		show_unlock_notification(division)
+
+func mark_division_viewed(division: Division) -> void:
+	newly_unlocked_divisions.erase(division)
+
+func is_division_newly_unlocked(division: Division) -> bool:
+	return newly_unlocked_divisions.has(division)
 
 func get_next_unlock(completed_division: Division) -> Division:
 	# Find what division this one unlocks
@@ -237,8 +245,13 @@ func save_unlocks() -> void:
 	for div in unlocked_divisions:
 		unlock_strings.append(_division_to_string(div))
 	
+	var newly_unlocked_strings: Array[String] = []
+	for div in newly_unlocked_divisions:
+		newly_unlocked_strings.append(_division_to_string(div))
+	
 	var save_data = {
 		"unlocked_divisions": unlock_strings,
+		"newly_unlocked": newly_unlocked_strings,
 		"version": 1
 	}
 	
@@ -255,6 +268,7 @@ func load_unlocks() -> void:
 	if not FileAccess.file_exists(UNLOCKS_SAVE_PATH):
 		# First time - use defaults
 		unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+		newly_unlocked_divisions.clear()
 		return
 	
 	var file = FileAccess.open(UNLOCKS_SAVE_PATH, FileAccess.READ)
@@ -273,16 +287,28 @@ func load_unlocks() -> void:
 					var div = _string_to_division(div_string)
 					if div != -1:
 						unlocked_divisions.append(div)
+				
+				# Load newly unlocked divisions if they exist
+				newly_unlocked_divisions.clear()
+				if save_data.has("newly_unlocked"):
+					for div_string in save_data.newly_unlocked:
+						var div = _string_to_division(div_string)
+						if div != -1:
+							newly_unlocked_divisions.append(div)
+				
 				print("Loaded unlocks: ", unlocked_divisions.size(), " divisions")
 			else:
 				# Fallback to defaults if format is wrong
 				unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+				newly_unlocked_divisions.clear()
 		else:
 			print("Error parsing unlocks file, using defaults")
 			unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+			newly_unlocked_divisions.clear()
 	else:
 		print("Error: Could not load unlocks file, using defaults")
 		unlocked_divisions = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
+		newly_unlocked_divisions.clear()
 
 func _division_to_string(division: Division) -> String:
 	match division:
