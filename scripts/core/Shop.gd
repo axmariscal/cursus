@@ -156,11 +156,8 @@ func _get_item_price(category: String, base_name: String, rarity: ItemRarity = I
 	var ante_modifier = 1.0 + (GameManager.current_ante * 0.05)  # 5% increase per ante
 	var final_price = int(base_price * ante_modifier)
 	
-	# Apply division special rules
-	var special_rules = GameManager.division_config.get("special_rules", [])
-	if "limited_funding" in special_rules:
-		# Post Collegiate: Items cost 1.5x more
-		final_price = int(final_price * 1.5)
+	# Apply division special rules (e.g., limited_funding makes shop 1.5x more expensive)
+	final_price = int(final_price * GameManager.shop_price_multiplier)
 	
 	return final_price
 

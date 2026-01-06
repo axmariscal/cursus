@@ -505,6 +505,10 @@ static func calculate_target_opponent_strength() -> float:
 	# Higher performance = worse finish, so target_ratio > 1.0 means opponents are weaker
 	var target_base_strength = avg_player_strength * target_ratio
 	
+	# Apply special rule opponent strength multiplier (e.g., elite_opponents makes them 20% stronger)
+	# Since lower performance = better finish, divide by multiplier to make opponents stronger
+	target_base_strength = target_base_strength / GameManager.opponent_base_strength_multiplier
+	
 	# Championship races have stronger opponents (applied to base, before difficulty multiplier)
 	# IMPORTANT: With new formula, lower performance = better finish
 	# To make opponents stronger, we multiply by a factor < 1.0 (lowers performance)

@@ -55,6 +55,14 @@ var current_division: Division = Division.HIGH_SCHOOL
 var unlocked_divisions: Array[Division] = [Division.MIDDLE_SCHOOL, Division.HIGH_SCHOOL]
 var division_config: Dictionary = {}
 
+# Track special rule modifiers
+var shop_price_multiplier: float = 1.0
+var reward_multiplier_modifier: float = 1.0
+var enable_contracts: bool = false
+var enable_sponsorships: bool = false
+var no_consolation_gold: bool = false
+var opponent_base_strength_multiplier: float = 1.0
+
 # Division definitions - using enum as keys
 const DIVISION_DATA = {
 	Division.MIDDLE_SCHOOL: {
@@ -142,7 +150,7 @@ const DIVISION_DATA = {
 		"reward_multiplier": 2.5,
 		"starting_team_tier": "legendary",
 		"unlock_requirement": Division.POST_COLLEGIATE,
-		"special_rules": [],
+		"special_rules": ["contracts", "sponsorships"],
 		"description": "Professional racing circuit"
 	},
 	Division.WORLD_CONTENDER: {
@@ -153,7 +161,7 @@ const DIVISION_DATA = {
 		"reward_multiplier": 3.0,
 		"starting_team_tier": "legendary",
 		"unlock_requirement": Division.PROFESSIONAL,
-		"special_rules": [],
+		"special_rules": ["no_consolation", "elite_opponents"],
 		"description": "Elite world-class competition"
 	}
 }
@@ -529,10 +537,33 @@ func _give_legendary_team() -> void:
 		add_varsity_runner(runner)
 
 func _apply_division_special_rules(special_rules: Array) -> void:
-	# Apply special rules based on division
-	# Rules are checked in relevant systems (e.g., Shop.gd checks for "limited_funding")
-	# This function is here for any initialization needed
-	pass
+	# Reset all modifiers to defaults
+	shop_price_multiplier = 1.0
+	reward_multiplier_modifier = 1.0
+	enable_contracts = false
+	enable_sponsorships = false
+	no_consolation_gold = false
+	opponent_base_strength_multiplier = 1.0
+	
+	# Apply rules from the array
+	for rule in special_rules:
+		match rule:
+			"limited_funding":
+				# Post Collegiate: Shop costs 1.5x, rewards -20%
+				shop_price_multiplier = 1.5
+				reward_multiplier_modifier = 0.8
+			"contracts":
+				# Professional: Can sign contracts with runners
+				enable_contracts = true
+			"sponsorships":
+				# Professional: Passive gold income
+				enable_sponsorships = true
+			"no_consolation":
+				# World Contender: No gold on losses
+				no_consolation_gold = true
+			"elite_opponents":
+				# World Contender: Opponents start stronger
+				opponent_base_strength_multiplier = 1.2
 
 
 func advance_ante():
@@ -647,9 +678,16 @@ func calculate_race_reward() -> int:
 	# Apply division reward multiplier
 	var division_multiplier = division_config.get("reward_multiplier", 1.0)
 	
-	return int(base_reward * race_type_multiplier * division_multiplier)
+	# Apply special rule reward modifier (e.g., limited_funding reduces rewards by 20%)
+	var final_reward = base_reward * race_type_multiplier * division_multiplier * reward_multiplier_modifier
+	
+	return int(final_reward)
 
 func calculate_consolation_reward() -> int:
+	# Check if consolation gold is disabled by special rules
+	if no_consolation_gold:
+		return 0
+	
 	# Consolation reward for losing: 35% of win reward
 	# This allows players to still progress even when losing
 	var win_reward = calculate_race_reward()
