@@ -1,52 +1,22 @@
 extends Control
 
-# Division selection scene - Balatro-style deck selection
+# Division selection scene - Single card view with arrow navigation
 
-@onready var division_grid: GridContainer = %DivisionGrid
 @onready var title_label: Label = %Title
 @onready var subtitle_label: Label = %Subtitle
 @onready var back_button: Button = %BackButton
+@onready var division_card_container: Control = %DivisionCardContainer
+@onready var prev_button: Button = %PrevButton
+@onready var next_button: Button = %NextButton
+@onready var select_button: Button = %SelectButton
 
-var division_cards: Array[Control] = []
+var division_order: Array[GameManager.Division] = []
+var current_index: int = 0
+var current_card: Control = null
 
 func _ready() -> void:
-	_style_ui()
-	_create_division_cards()
-	_connect_signals()
-
-func _style_ui() -> void:
-	# Style title
-	title_label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.2))  # Gold
-	subtitle_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4, 0.9))
-	
-	# Style back button
-	var back_style = StyleBoxFlat.new()
-	back_style.bg_color = Color(0.8, 0.3, 0.3)
-	back_style.corner_radius_top_left = 5
-	back_style.corner_radius_top_right = 5
-	back_style.corner_radius_bottom_right = 5
-	back_style.corner_radius_bottom_left = 5
-	back_button.add_theme_stylebox_override("normal", back_style)
-	
-	var back_hover = StyleBoxFlat.new()
-	back_hover.bg_color = Color(0.9, 0.4, 0.4)
-	back_hover.corner_radius_top_left = 5
-	back_hover.corner_radius_top_right = 5
-	back_hover.corner_radius_bottom_right = 5
-	back_hover.corner_radius_bottom_left = 5
-	back_button.add_theme_stylebox_override("hover", back_hover)
-
-func _connect_signals() -> void:
-	back_button.pressed.connect(_on_back_pressed)
-
-func _create_division_cards() -> void:
-	# Clear existing cards
-	for card in division_cards:
-		card.queue_free()
-	division_cards.clear()
-	
-	# Create cards for each division
-	var division_order = [
+	# Initialize division order
+	division_order = [
 		GameManager.Division.MIDDLE_SCHOOL,
 		GameManager.Division.HIGH_SCHOOL,
 		GameManager.Division.JUNIOR_COLLEGE,
@@ -58,11 +28,76 @@ func _create_division_cards() -> void:
 		GameManager.Division.WORLD_CONTENDER
 	]
 	
-	for division in division_order:
-		var card = _create_division_card(division)
-		if card:
-			division_grid.add_child(card)
-			division_cards.append(card)
+	# Find first unlocked division
+	current_index = 0
+	for i in range(division_order.size()):
+		if GameManager.is_division_unlocked(division_order[i]):
+			current_index = i
+			break
+	
+	_style_ui()
+	_connect_signals()
+	_display_current_division()
+
+func _style_ui() -> void:
+	# Style title - dark grey
+	title_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))
+	subtitle_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))
+	
+	# Style back button
+	var back_style = StyleBoxFlat.new()
+	back_style.bg_color = Color(0.6, 0.6, 0.6)
+	back_style.corner_radius_top_left = 5
+	back_style.corner_radius_top_right = 5
+	back_style.corner_radius_bottom_right = 5
+	back_style.corner_radius_bottom_left = 5
+	back_button.add_theme_stylebox_override("normal", back_style)
+	back_button.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))
+	
+	var back_hover = StyleBoxFlat.new()
+	back_hover.bg_color = Color(0.7, 0.7, 0.7)
+	back_hover.corner_radius_top_left = 5
+	back_hover.corner_radius_top_right = 5
+	back_hover.corner_radius_bottom_right = 5
+	back_hover.corner_radius_bottom_left = 5
+	back_button.add_theme_stylebox_override("hover", back_hover)
+
+func _connect_signals() -> void:
+	back_button.pressed.connect(_on_back_pressed)
+	prev_button.pressed.connect(_on_prev_pressed)
+	next_button.pressed.connect(_on_next_pressed)
+	select_button.pressed.connect(_on_select_pressed)
+
+func _display_current_division() -> void:
+	# Clear existing card
+	if current_card:
+		current_card.queue_free()
+		current_card = null
+	
+	# Get current division
+	var division = division_order[current_index]
+	var card = _create_division_card(division)
+	if card:
+		division_card_container.add_child(card)
+		current_card = card
+	
+	# Update navigation buttons
+	prev_button.disabled = current_index == 0
+	next_button.disabled = current_index >= division_order.size() - 1
+	
+	# Update select button
+	var is_unlocked = GameManager.is_division_unlocked(division)
+	select_button.disabled = not is_unlocked
+	if is_unlocked:
+		select_button.text = "Select Division"
+	else:
+		select_button.text = "Locked"
+	
+	_style_division_button(select_button, is_unlocked)
+	
+	# Update division counter
+	var counter_text = "%d / %d" % [current_index + 1, division_order.size()]
+	# You can add a label for this if needed
 
 func _create_division_card(division: GameManager.Division) -> Control:
 	var config = GameManager.get_division_config(division)
@@ -72,21 +107,25 @@ func _create_division_card(division: GameManager.Division) -> Control:
 	var is_unlocked = GameManager.is_division_unlocked(division)
 	var is_new = GameManager.is_division_newly_unlocked(division) if is_unlocked else false
 	
-	# Create card container with relative positioning for overlays
+	# Create card container with relative positioning for overlays - responsive size
 	var card_container = PanelContainer.new()
-	card_container.custom_minimum_size = Vector2(220, 340)
+	# Use smaller, more flexible size that fits on most screens
+	card_container.custom_minimum_size = Vector2(400, 500)
+	# Allow it to shrink if needed
+	card_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	
-	# Card margin
+	# Card margin - reasonable margins
 	var card_margin = MarginContainer.new()
-	card_margin.set("theme_override_constants/margin_left", 15)
-	card_margin.set("theme_override_constants/margin_top", 15)
-	card_margin.set("theme_override_constants/margin_right", 15)
-	card_margin.set("theme_override_constants/margin_bottom", 15)
+	card_margin.set("theme_override_constants/margin_left", 20)
+	card_margin.set("theme_override_constants/margin_top", 20)
+	card_margin.set("theme_override_constants/margin_right", 20)
+	card_margin.set("theme_override_constants/margin_bottom", 20)
 	card_container.add_child(card_margin)
 	
 	# Card content
 	var card_content = VBoxContainer.new()
-	card_content.add_theme_constant_override("separation", 6)
+	card_content.add_theme_constant_override("separation", 8)
 	card_margin.add_child(card_content)
 	
 	# NEW badge (if newly unlocked) - positioned at top
@@ -94,30 +133,35 @@ func _create_division_card(division: GameManager.Division) -> Control:
 		var new_badge = _create_new_badge()
 		card_content.add_child(new_badge)
 	
-	# Division name
+	# Division name - dark grey, slightly smaller
 	var name_label = Label.new()
 	name_label.text = config.get("name", "Unknown")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 22)
+	name_label.add_theme_font_size_override("font_size", 28)
 	name_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))
 	card_content.add_child(name_label)
 	
-	# Description
+	# Description - dark grey, compact
 	var desc_label = Label.new()
 	desc_label.text = config.get("description", "")
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_label.add_theme_font_size_override("font_size", 11)
-	desc_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))
+	desc_label.custom_minimum_size = Vector2(350, 0)  # Constrain width
 	card_content.add_child(desc_label)
 	
 	# Difficulty indicator
 	var difficulty_container = _create_difficulty_indicator(config.get("difficulty_curve", 0.15))
 	card_content.add_child(difficulty_container)
 	
+	# Separator before stats
+	var separator = HSeparator.new()
+	card_content.add_child(separator)
+	
 	# Stats section
 	var stats_container = VBoxContainer.new()
-	stats_container.add_theme_constant_override("separation", 4)
+	stats_container.add_theme_constant_override("separation", 8)
 	card_content.add_child(stats_container)
 	
 	# Starting gold with icon
@@ -144,19 +188,9 @@ func _create_division_card(division: GameManager.Division) -> Control:
 	spacer.custom_minimum_size = Vector2(0, 8)
 	card_content.add_child(spacer)
 	
-	# Select button
-	var select_button = Button.new()
-	select_button.text = "Select" if is_unlocked else "Locked"
-	select_button.disabled = not is_unlocked
-	select_button.custom_minimum_size = Vector2(0, 35)
-	select_button.pressed.connect(_on_division_selected.bind(division))
-	card_content.add_child(select_button)
-	
+	# Don't add select button here - it's in the main UI
 	# Style the card
 	_style_division_card(card_container, is_unlocked, config)
-	
-	# Style the button
-	_style_division_button(select_button, is_unlocked)
 	
 	return card_container
 
@@ -168,8 +202,8 @@ func _create_new_badge() -> Control:
 	var badge = Label.new()
 	badge.text = "✨ NEW ✨"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	badge.add_theme_font_size_override("font_size", 14)
-	badge.add_theme_color_override("font_color", Color(0.9, 0.7, 0.2))  # Gold
+	badge.add_theme_font_size_override("font_size", 16)
+	badge.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))  # Dark grey
 	
 	# Style badge background
 	var badge_style = StyleBoxFlat.new()
@@ -198,8 +232,8 @@ func _create_difficulty_indicator(difficulty_curve: float) -> Control:
 	var label = Label.new()
 	label.text = "Difficulty"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))  # Dark grey
 	container.add_child(label)
 	
 	# Create visual difficulty bar using ProgressBar for better control
@@ -258,13 +292,14 @@ func _create_stat_row(icon: String, text: String) -> Control:
 	
 	var icon_label = Label.new()
 	icon_label.text = icon
-	icon_label.add_theme_font_size_override("font_size", 12)
+	icon_label.add_theme_font_size_override("font_size", 16)
 	row.add_child(icon_label)
 	
 	var text_label = Label.new()
 	text_label.text = text
 	text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text_label.add_theme_font_size_override("font_size", 11)
+	text_label.add_theme_font_size_override("font_size", 16)
+	text_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))  # Dark grey
 	row.add_child(text_label)
 	
 	return row
@@ -276,16 +311,16 @@ func _create_special_rules_section(rules: Array) -> Control:
 	var header = Label.new()
 	header.text = "Special Rules:"
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", 10)
-	header.add_theme_color_override("font_color", Color(0.7, 0.5, 0.2))
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))  # Dark grey
 	container.add_child(header)
 	
 	for rule in rules:
 		var rule_label = Label.new()
 		rule_label.text = "• " + _format_rule_name(rule)
 		rule_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		rule_label.add_theme_font_size_override("font_size", 9)
-		rule_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		rule_label.add_theme_font_size_override("font_size", 12)
+		rule_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))  # Dark grey
 		rule_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		container.add_child(rule_label)
 	
@@ -310,17 +345,17 @@ func _style_division_card(card: PanelContainer, is_unlocked: bool, config: Dicti
 	var card_style = StyleBoxFlat.new()
 	
 	if is_unlocked:
-		# Unlocked: bright colors with accent based on difficulty
+		# Unlocked: light background for dark text
 		var difficulty = config.get("difficulty_curve", 0.15)
 		var accent_color = _get_difficulty_color(difficulty).darkened(0.2)
 		
-		card_style.bg_color = Color(0.99, 0.98, 0.96, 1.0)
+		card_style.bg_color = Color(0.95, 0.95, 0.95, 1.0)  # Light grey/white background
 		card_style.border_color = accent_color
 	else:
-		# Locked: dimmed
-		card_style.bg_color = Color(0.7, 0.7, 0.7, 0.5)
-		card_style.border_color = Color(0.4, 0.4, 0.4, 0.6)
-		card.modulate = Color(0.6, 0.6, 0.6, 1.0)  # Dim the whole card
+		# Locked: dimmed but still readable
+		card_style.bg_color = Color(0.85, 0.85, 0.85, 0.8)
+		card_style.border_color = Color(0.5, 0.5, 0.5, 0.8)
+		card.modulate = Color(0.7, 0.7, 0.7, 1.0)  # Slightly dimmed
 	
 	card_style.border_width_left = 2
 	card_style.border_width_top = 2
@@ -341,11 +376,11 @@ func _style_division_button(button: Button, is_unlocked: bool) -> void:
 	style_normal.corner_radius_bottom_left = 5
 	
 	if is_unlocked:
-		style_normal.bg_color = Color(0.2, 0.6, 0.9)
-		button.add_theme_color_override("font_color", Color.WHITE)
+		style_normal.bg_color = Color(0.4, 0.6, 0.8)
+		button.add_theme_color_override("font_color", Color(0.2, 0.2, 0.2))  # Dark grey text
 	else:
-		style_normal.bg_color = Color(0.4, 0.4, 0.4)
-		button.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		style_normal.bg_color = Color(0.5, 0.5, 0.5)
+		button.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))  # Dark grey text
 	
 	button.add_theme_stylebox_override("normal", style_normal)
 	
@@ -357,6 +392,20 @@ func _style_division_button(button: Button, is_unlocked: bool) -> void:
 	style_hover.bg_color = style_normal.bg_color.lightened(0.15)
 	button.add_theme_stylebox_override("hover", style_hover)
 
+func _on_prev_pressed() -> void:
+	if current_index > 0:
+		current_index -= 1
+		_display_current_division()
+
+func _on_next_pressed() -> void:
+	if current_index < division_order.size() - 1:
+		current_index += 1
+		_display_current_division()
+
+func _on_select_pressed() -> void:
+	var division = division_order[current_index]
+	_on_division_selected(division)
+
 func _on_division_selected(division: GameManager.Division) -> void:
 	# Mark as viewed (remove "NEW" badge)
 	GameManager.mark_division_viewed(division)
@@ -364,12 +413,9 @@ func _on_division_selected(division: GameManager.Division) -> void:
 	# Start new run with selected division
 	GameManager.start_new_run(division)
 	
-	# Show draft before first race (for testing, especially for middle school)
-	# TODO: Make this conditional or remove after testing
-	if division == GameManager.Division.MIDDLE_SCHOOL:
-		get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
-	else:
-		get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
+	# Show draft before first race for all divisions (at ante 1)
+	# The draft will only show if draft_completed is false (which it is for new runs)
+	get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/core/Main.tscn")

@@ -29,6 +29,7 @@ var draft_completed := false  # Track if initial draft has been completed
 
 # Currency
 var gold := 100          # Starting gold for new runs
+var training_points := 0  # Training points earned from races
 
 # Base stats
 var base_speed := 10
@@ -476,6 +477,9 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	jokers.clear()
 	shop_inventory.clear()
 	
+	# Reset currency
+	training_points = 0
+	
 	# Reset draft flag
 	draft_completed = false
 	
@@ -811,6 +815,51 @@ func calculate_consolation_reward() -> int:
 	# This allows players to still progress even when losing
 	var win_reward = calculate_race_reward()
 	return max(5, int(win_reward * 0.35))  # Minimum 5 gold, even for early antes
+
+# ============================================
+# TRAINING POINTS SYSTEM
+# ============================================
+
+func earn_training_points(amount: int) -> void:
+	training_points += amount
+	print("Earned %d training points. Total: %d" % [amount, training_points])
+
+func spend_training_points(amount: int) -> bool:
+	if training_points >= amount:
+		training_points -= amount
+		print("Spent %d training points. Remaining: %d" % [amount, training_points])
+		return true
+	print("Not enough training points! Need %d, have %d" % [amount, training_points])
+	return false
+
+func get_training_points() -> int:
+	return training_points
+
+# Calculate training points awarded based on race performance
+# Win: 5 points, Loss: 3 points, with bonuses for top placements
+func calculate_training_points(race_result: Dictionary) -> int:
+	var points = 0
+	
+	if race_result.get("won", false):
+		# Base points for winning
+		points = 5
+		
+		# Bonus for top placement
+		var placement = race_result.get("player_placement", 999)
+		if placement == 1:
+			points += 2  # +2 bonus for 1st place
+		elif placement <= 3:
+			points += 1  # +1 bonus for top 3
+	else:
+		# Base points for losing (still get some points for participation)
+		points = 3
+		
+		# Small bonus for good placement even on loss
+		var placement = race_result.get("player_placement", 999)
+		if placement <= 3:
+			points += 1  # +1 bonus for top 3 even if lost
+	
+	return points
 
 
 # Get item effect - returns a dictionary with stat bonuses

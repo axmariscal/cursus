@@ -214,15 +214,22 @@ func apply_training(workout_type: String, base_gain: int = 2) -> Dictionary:
 		"power": 0
 	}
 	
+	# Injury risk varies by workout type
+	var injury_risk: float = 0.0
+	
 	match workout_type:
 		"speed":
 			gains.speed = int(base_gain * growth_potential.speed)
+			injury_risk = 1.0 + (randf() * 2.0)  # 1-3 points
 		"endurance":
 			gains.endurance = int(base_gain * growth_potential.endurance)
+			injury_risk = 1.0 + (randf() * 2.0)  # 1-3 points
 		"stamina":
 			gains.stamina = int(base_gain * growth_potential.stamina)
+			injury_risk = 1.0 + (randf() * 2.0)  # 1-3 points
 		"power":
 			gains.power = int(base_gain * growth_potential.power)
+			injury_risk = 1.5 + (randf() * 2.5)  # 1.5-4 points (power training is more intense)
 		"balanced":
 			# Balanced workout gives smaller gains to all stats
 			var balanced_gain = int(base_gain * 0.75)
@@ -230,12 +237,28 @@ func apply_training(workout_type: String, base_gain: int = 2) -> Dictionary:
 			gains.endurance = int(balanced_gain * growth_potential.endurance)
 			gains.stamina = int(balanced_gain * growth_potential.stamina)
 			gains.power = int(balanced_gain * growth_potential.power)
+			injury_risk = 0.8 + (randf() * 1.5)  # 0.8-2.3 points (lower risk, balanced)
+		"recovery":
+			# Recovery workout reduces injury, no stat gains
+			# This is handled separately in Training.gd, but we still track it here
+			injury_risk = -5.0 - (randf() * 5.0)  # Negative = recovery (5-10 points recovered)
+		"intensive":
+			# Intensive training gives higher gains but much higher injury risk
+			gains.speed = int(base_gain * growth_potential.speed)
+			gains.endurance = int(base_gain * growth_potential.endurance)
+			gains.stamina = int(base_gain * growth_potential.stamina)
+			gains.power = int(base_gain * growth_potential.power)
+			injury_risk = 3.0 + (randf() * 4.0)  # 3-7 points (high risk!)
+		_:
+			# Unknown workout type - default behavior
+			injury_risk = 1.0 + (randf() * 2.0)
 	
-	# Apply gains to current stats
-	current_stats.speed += gains.speed
-	current_stats.endurance += gains.endurance
-	current_stats.stamina += gains.stamina
-	current_stats.power += gains.power
+	# Apply gains to current stats (only if not recovery)
+	if workout_type != "recovery":
+		current_stats.speed += gains.speed
+		current_stats.endurance += gains.endurance
+		current_stats.stamina += gains.stamina
+		current_stats.power += gains.power
 	
 	# Record training
 	training_history.append({
@@ -245,8 +268,13 @@ func apply_training(workout_type: String, base_gain: int = 2) -> Dictionary:
 	})
 	total_training_sessions += 1
 	
-	# Training increases injury risk slightly
-	_increase_injury_meter(1.0 + (randf() * 2.0))  # 1-3 points per training
+	# Apply injury risk/recovery
+	if injury_risk < 0:
+		# Recovery (negative value)
+		recover(abs(injury_risk))
+	else:
+		# Injury risk (positive value)
+		_increase_injury_meter(injury_risk)
 	
 	return gains
 

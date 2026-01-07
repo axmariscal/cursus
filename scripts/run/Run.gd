@@ -50,6 +50,7 @@ var card_interaction: CardInteraction
 @onready var start_race_button: Button = %StartRaceButton
 @onready var complete_race_button: Button = %CompleteRaceButton
 @onready var continue_to_shop_button: Button = %ContinueToShopButton
+@onready var go_to_training_button: Button = %GoToTrainingButton
 @onready var view_team_button: Button = %ViewTeamButton
 @onready var back_button: Button = %BackButton
 
@@ -103,6 +104,7 @@ func _ready() -> void:
 	start_race_button.pressed.connect(_on_start_race_pressed)
 	complete_race_button.pressed.connect(_on_complete_race_pressed)
 	continue_to_shop_button.pressed.connect(_on_continue_to_shop_pressed)
+	go_to_training_button.pressed.connect(_on_go_to_training_pressed)
 	view_team_button.pressed.connect(_on_view_team_pressed)
 	result_close_button.pressed.connect(_on_result_close_pressed)
 	
@@ -129,6 +131,7 @@ func _ready() -> void:
 	run_styling.style_action_button(start_race_button, Color(0.3, 0.8, 0.4))  # Green
 	run_styling.style_action_button(complete_race_button, Color(0.5, 0.5, 0.5))  # Grey
 	run_styling.style_shop_button(continue_to_shop_button, false)  # Start as gray/inactive
+	run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue (inactive initially)
 	run_styling.style_action_button(view_team_button, Color(0.2, 0.6, 0.9))  # Blue
 	run_styling.style_action_button(back_button, Color(0.8, 0.3, 0.3))  # Red
 	run_styling.style_action_button(result_close_button, Color(0.6, 0.6, 0.6))  # Grey
@@ -322,38 +325,56 @@ func _set_race_state(new_state: RunState.RaceState) -> void:
 			complete_race_button.disabled = true
 			continue_to_shop_button.visible = true
 			continue_to_shop_button.disabled = true
+			go_to_training_button.visible = true
+			go_to_training_button.disabled = true
 			run_styling.style_shop_button(continue_to_shop_button, false)  # Gray when inactive
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue when inactive
 		RunState.RaceState.RACING:
 			run_ui.clear_result_display()
 			start_race_button.disabled = true
 			complete_race_button.disabled = false
 			continue_to_shop_button.visible = true
 			continue_to_shop_button.disabled = true
+			go_to_training_button.visible = true
+			go_to_training_button.disabled = true
 			run_styling.style_shop_button(continue_to_shop_button, false)  # Gray when inactive
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue when inactive
 		RunState.RaceState.COMPLETED:
 			start_race_button.disabled = false
 			complete_race_button.disabled = true
 			continue_to_shop_button.visible = true
-			# Enable shop button after any race completion (win or lose)
-			# Players should be able to shop to improve their team regardless of outcome
+			go_to_training_button.visible = true
+			# Enable both buttons after any race completion (win or lose)
 			var won = false
 			if not run_state.last_race_result.is_empty():
 				won = run_state.last_race_result.get("won", false)
-			# Always enable the button after race completion
+			# Always enable both buttons after race completion
 			continue_to_shop_button.disabled = false
+			go_to_training_button.disabled = false
 			if won:
 				run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when won
+				run_styling.style_action_button(go_to_training_button, Color(0.3, 0.8, 0.4))  # Green when won
 			else:
 				run_styling.style_shop_button(continue_to_shop_button, true)  # Blue when lost (still allow shopping)
+				run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue when lost
 
 func _on_result_close_pressed() -> void:
 	run_ui.clear_result_display()
 	# Update button state based on race completion
-	# Enable shop button after any race completion (win or lose)
+	# Enable both buttons after any race completion (win or lose)
 	if run_state.get_race_state() == RunState.RaceState.COMPLETED:
 		continue_to_shop_button.visible = true
 		continue_to_shop_button.disabled = false
+		go_to_training_button.visible = true
+		go_to_training_button.disabled = false
+		var won = false
+		if not run_state.last_race_result.is_empty():
+			won = run_state.last_race_result.get("won", false)
 		run_styling.style_shop_button(continue_to_shop_button, true)  # Always enable shopping
+		if won:
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.8, 0.4))  # Green when won
+		else:
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue when lost
 
 func _on_start_race_pressed() -> void:
 	var current_state = run_state.get_race_state()
@@ -386,25 +407,47 @@ func _on_complete_race_pressed() -> void:
 		# Note: complete_race() already sets the state to COMPLETED, but we call this
 		# to ensure UI is properly updated
 		_set_race_state(RunState.RaceState.COMPLETED)
-		# Enable shop button after any race completion (win or lose)
-		# Players should be able to shop to improve their team regardless of outcome
+		# Enable both buttons after any race completion (win or lose)
+		# Players should be able to train and shop to improve their team regardless of outcome
 		continue_to_shop_button.visible = true
 		continue_to_shop_button.disabled = false
+		go_to_training_button.visible = true
+		go_to_training_button.disabled = false
 		var won = race_result.get("won", false)
 		run_styling.style_shop_button(continue_to_shop_button, true)  # Always enable shopping
+		if won:
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.8, 0.4))  # Green when won
+		else:
+			run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue when lost
 		# Show result display after state is set
 		run_ui.show_result_display(result_message)
 
-func _on_continue_to_shop_pressed() -> void:
-	# Deselect card when navigating to shop
+func _on_go_to_training_pressed() -> void:
+	# Deselect card when navigating
 	card_interaction.deselect_team_card()
 	
-	# Check if draft should appear before shop
+	# Check if draft should appear first (only at ante 1)
 	if _should_show_draft():
 		run_ui.show_loading_screen("Loading Draft...")
 		await get_tree().create_timer(0.5).timeout
 		get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
 	else:
+		# Go directly to Training
+		run_ui.show_loading_screen("Loading Training...")
+		await get_tree().create_timer(0.5).timeout
+		get_tree().change_scene_to_file("res://scenes/core/TrainingScene.tscn")
+
+func _on_continue_to_shop_pressed() -> void:
+	# Deselect card when navigating
+	card_interaction.deselect_team_card()
+	
+	# Check if draft should appear first (only at ante 1)
+	if _should_show_draft():
+		run_ui.show_loading_screen("Loading Draft...")
+		await get_tree().create_timer(0.5).timeout
+		get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
+	else:
+		# Go directly to Shop (can be accessed independently)
 		run_ui.show_loading_screen("Loading Shop...")
 		await get_tree().create_timer(0.5).timeout
 		get_tree().change_scene_to_file("res://scenes/core/ShopScene.tscn")

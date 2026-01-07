@@ -1,0 +1,126 @@
+[gd_scene load_steps=2 format=3 uid="uid://training_scene_001"]
+
+[ext_resource type="Script" path="res://scripts/core/Training.gd" id="1_training"]
+
+[node name="TrainingScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_training")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "TRAINING PHASE"
+horizontal_alignment = 1
+
+[node name="AnteLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ante: 1"
+horizontal_alignment = 1
+
+[node name="TrainingPointsLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "🏋️ Training Points: 0"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InstructionsLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Select a runner and choose a workout type. Each runner can train 1-2 times per phase."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RunnersSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RunnersHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/RunnersSection"]
+layout_mode = 2
+text = "--- SELECT RUNNER ---"
+horizontal_alignment = 1
+
+[node name="RunnersContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/RunnersSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator3" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WorkoutsSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WorkoutsHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/WorkoutsSection"]
+layout_mode = 2
+text = "--- SELECT WORKOUT TYPE ---"
+horizontal_alignment = 1
+
+[node name="WorkoutsContainer" type="HFlowContainer" parent="UI/ScrollContainer/VBoxContainer/WorkoutsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator4" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SelectedRunnerLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Selected: None"
+horizontal_alignment = 1
+
+[node name="TrainingHistoryLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator5" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ContinueButton" type="Button" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Continue to Next Race"
+
+[node name="TrainingFeedbackLabel" type="Label" parent="UI"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 24
+text = "✓ Training Complete!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
