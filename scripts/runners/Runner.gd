@@ -80,39 +80,43 @@ func _load_stats_from_name(runner_name: String) -> void:
 	_set_growth_potential(runner_name)
 
 func _set_growth_potential(runner_name: String) -> void:
-	# Default growth potential (can be overridden per runner type)
-	# Special talents have higher growth, safe picks have lower
+	# Get base growth potential from runner type definition
+	var base_growth = GameManager.get_runner_growth_potential(runner_name)
+	growth_potential = base_growth.duplicate()
+	
+	# Apply draft tier modifiers on top of base growth
+	# This allows draft tier to enhance or reduce the inherent growth potential
 	match draft_tier:
 		"special_talent":
-			# High growth potential (2x-3x)
-			growth_potential.speed = 2.5
-			growth_potential.endurance = 2.5
-			growth_potential.stamina = 2.5
-			growth_potential.power = 2.5
+			# Special talents get 2x multiplier on top of base growth
+			# This makes them extremely high growth if they have good base growth
+			growth_potential.speed *= 2.0
+			growth_potential.endurance *= 2.0
+			growth_potential.stamina *= 2.0
+			growth_potential.power *= 2.0
 		"outstanding_recruit":
-			# Outstanding recruits have high base stats AND good growth
-			growth_potential.speed = 1.8
-			growth_potential.endurance = 1.8
-			growth_potential.stamina = 1.8
-			growth_potential.power = 1.8
+			# Outstanding recruits get 1.5x multiplier (high base stats + good growth)
+			growth_potential.speed *= 1.5
+			growth_potential.endurance *= 1.5
+			growth_potential.stamina *= 1.5
+			growth_potential.power *= 1.5
 		"returner":
-			# Returners have good growth in endurance/stamina
-			growth_potential.speed = 1.2
-			growth_potential.endurance = 1.8
-			growth_potential.stamina = 1.8
-			growth_potential.power = 1.2
+			# Returners get bonus to endurance/stamina growth specifically
+			growth_potential.endurance *= 1.4
+			growth_potential.stamina *= 1.4
+			# Other stats get slight boost
+			growth_potential.speed *= 1.1
+			growth_potential.power *= 1.1
 		"walkon":
-			# Walk-ons have moderate growth
-			growth_potential.speed = 1.3
-			growth_potential.endurance = 1.3
-			growth_potential.stamina = 1.3
-			growth_potential.power = 1.3
+			# Walk-ons get moderate boost (1.2x)
+			growth_potential.speed *= 1.2
+			growth_potential.endurance *= 1.2
+			growth_potential.stamina *= 1.2
+			growth_potential.power *= 1.2
 		"safe_pick", _:
-			# Safe picks have lower growth (already race-ready)
-			growth_potential.speed = 1.0
-			growth_potential.endurance = 1.0
-			growth_potential.stamina = 1.0
-			growth_potential.power = 1.0
+			# Safe picks use base growth as-is (no modifier)
+			# They're already race-ready, so no bonus growth needed
+			pass
 
 # ============================================
 # STAT GETTERS

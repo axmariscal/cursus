@@ -202,6 +202,95 @@ const RUNNER_TIERS = {
 	]
 }
 
+# Runner growth potential data
+# Defines how well each runner type responds to training
+# Values are multipliers: 1.0 = normal, >1.0 = better growth, <1.0 = slower growth
+# Growth can be specialized (high in one stat) or balanced
+const RUNNER_GROWTH_POTENTIAL = {
+	# Common Runners
+	"Freshman Walk-on": {
+		"speed": 2.0,      # High growth - young and undeveloped
+		"endurance": 2.0,
+		"stamina": 2.0,
+		"power": 2.0
+	},
+	"Hill Specialist": {
+		"speed": 1.2,      # Moderate growth, specializes in power
+		"endurance": 1.1,
+		"stamina": 1.1,
+		"power": 1.8       # High power growth (their specialty)
+	},
+	"Steady State Runner": {
+		"speed": 1.1,      # Specializes in endurance/stamina
+		"endurance": 1.7,
+		"stamina": 1.8,
+		"power": 1.1
+	},
+	"Tempo Runner": {
+		"speed": 1.5,      # Balanced, good growth in speed/endurance
+		"endurance": 1.6,
+		"stamina": 1.3,
+		"power": 1.2
+	},
+	"The Closer": {
+		"speed": 1.6,      # Specializes in speed/stamina (finishing kick)
+		"endurance": 1.2,
+		"stamina": 1.7,
+		"power": 1.3
+	},
+	# Rare Runners
+	"Track Tourist": {
+		"speed": 1.4,      # Already fast, moderate growth
+		"endurance": 1.2,
+		"stamina": 1.1,
+		"power": 1.8       # Can improve power to offset negative stat
+	},
+	"Short-Cutter": {
+		"speed": 1.5,      # Balanced growth
+		"endurance": 1.6,
+		"stamina": 1.4,
+		"power": 1.3
+	},
+	# Epic Runners
+	"Elite V-State Harrier": {
+		"speed": 1.3,      # Already elite, slower growth
+		"endurance": 1.2,
+		"stamina": 1.1,
+		"power": 1.4       # Can still improve power
+	},
+	"All-Terrain Captain": {
+		"speed": 1.4,      # Well-rounded, good balanced growth
+		"endurance": 1.5,
+		"stamina": 1.5,
+		"power": 1.4
+	},
+	"Caffeine Fiend": {
+		"speed": 1.2,      # Already very fast, limited growth
+		"endurance": 1.1,
+		"stamina": 1.9,    # High stamina growth (to offset negative)
+		"power": 1.2
+	},
+	"Ghost of the Woods": {
+		"speed": 1.2,      # Specializes in endurance/power
+		"endurance": 1.7,
+		"stamina": 1.3,
+		"power": 1.6
+	},
+	# Legendary Runners
+	"The Legend": {
+		"speed": 1.1,      # Near peak performance, minimal growth
+		"endurance": 1.1,
+		"stamina": 1.0,
+		"power": 1.0
+	},
+	"JV Legend": {
+		"speed": 1.3,      # Balanced legendary, moderate growth
+		"endurance": 1.3,
+		"stamina": 1.3,
+		"power": 1.3
+	}
+}
+
 # Save file path for unlocks
 const UNLOCKS_SAVE_PATH = "user://unlocks.save"
 
@@ -886,6 +975,28 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 					effect.power = 15
 	
 	return effect
+
+# Get runner growth potential - returns growth multipliers for training
+func get_runner_growth_potential(runner_name: String) -> Dictionary:
+	# Extract base name (remove prefix like "Runner: ", etc.)
+	var base_name = runner_name
+	if ":" in runner_name:
+		base_name = runner_name.split(":")[1].strip_edges()
+	
+	# Default growth potential (1.0 = normal growth)
+	var default_growth = {
+		"speed": 1.0,
+		"endurance": 1.0,
+		"stamina": 1.0,
+		"power": 1.0
+	}
+	
+	# Look up growth potential from data
+	if RUNNER_GROWTH_POTENTIAL.has(base_name):
+		return RUNNER_GROWTH_POTENTIAL[base_name].duplicate()
+	
+	# Return default if not found
+	return default_growth
 
 
 # Team management functions
