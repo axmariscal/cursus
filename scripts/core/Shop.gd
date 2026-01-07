@@ -624,5 +624,5 @@ func _show_purchase_feedback(message: String) -> void:
 	purchase_feedback_label.modulate.a = 1.0
 
 func _on_continue_pressed() -> void:
-	# Return to Run scene
+	# Return to Run scene (draft is handled before shop in Run.gd)
 	get_tree().change_scene_to_file("res://scenes/run/Run.tscn")

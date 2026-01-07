@@ -363,7 +363,13 @@ func _on_division_selected(division: GameManager.Division) -> void:
 	
 	# Start new run with selected division
 	GameManager.start_new_run(division)
-	get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
+	
+	# Show draft before first race (for testing, especially for middle school)
+	# TODO: Make this conditional or remove after testing
+	if division == GameManager.Division.MIDDLE_SCHOOL:
+		get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
+	else:
+		get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/core/Main.tscn")

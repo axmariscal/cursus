@@ -118,6 +118,43 @@ func _set_growth_potential(runner_name: String) -> void:
 			# They're already race-ready, so no bonus growth needed
 			pass
 
+# Update growth potential after draft_tier is set
+# Call this after setting draft_tier if it wasn't set during initialization
+func update_growth_potential_for_draft_tier() -> void:
+	# Reset to base growth potential first (to avoid double-applying modifiers)
+	var base_growth = GameManager.get_runner_growth_potential(name)
+	growth_potential = base_growth.duplicate()
+	
+	# Now apply draft tier modifiers
+	match draft_tier:
+		"special_talent":
+			# Special talents get 2x multiplier on top of base growth
+			growth_potential.speed *= 2.0
+			growth_potential.endurance *= 2.0
+			growth_potential.stamina *= 2.0
+			growth_potential.power *= 2.0
+		"outstanding_recruit":
+			# Outstanding recruits get 1.5x multiplier
+			growth_potential.speed *= 1.5
+			growth_potential.endurance *= 1.5
+			growth_potential.stamina *= 1.5
+			growth_potential.power *= 1.5
+		"returner":
+			# Returners get bonus to endurance/stamina growth specifically
+			growth_potential.endurance *= 1.4
+			growth_potential.stamina *= 1.4
+			growth_potential.speed *= 1.1
+			growth_potential.power *= 1.1
+		"walkon":
+			# Walk-ons get moderate boost (1.2x)
+			growth_potential.speed *= 1.2
+			growth_potential.endurance *= 1.2
+			growth_potential.stamina *= 1.2
+			growth_potential.power *= 1.2
+		"safe_pick", _:
+			# Safe picks use base growth as-is (no modifier)
+			pass
+
 # ============================================
 # STAT GETTERS
 # ============================================
@@ -304,8 +341,9 @@ func get_growth_score() -> float:
 func is_race_ready(min_total_stats: int = 50) -> bool:
 	return get_total_stats() >= min_total_stats
 
-# Convert to string (for debugging/saving)
-func to_string() -> String:
+# Convert to display string (for debugging/saving)
+# Note: Can't use to_string() as it overrides Object's native method
+func get_display_string() -> String:
 	return "%s (Stats: %d/%d/%d/%d, Injury: %.1f%%)" % [
 		display_name,
 		current_stats.speed,

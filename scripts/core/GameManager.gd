@@ -25,6 +25,7 @@ var shop_inventory = []  # practice/shop selections (equipment)
 var seed = 0             # run RNG seed
 var race_counter = 0     # counter to vary seed between races at same ante
 var run_active := false
+var draft_completed := false  # Track if initial draft has been completed
 
 # Currency
 var gold := 100          # Starting gold for new runs
@@ -475,7 +476,10 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	jokers.clear()
 	shop_inventory.clear()
 	
-	# Give starting team based on tier
+	# Reset draft flag
+	draft_completed = false
+	
+	# Give starting team based on tier (will be cleared if player goes through draft)
 	_give_starting_team_for_division(division_config.get("starting_team_tier", "common"))
 	
 	# Apply special rules

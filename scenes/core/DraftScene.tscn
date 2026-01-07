@@ -1,0 +1,176 @@
+[gd_scene load_steps=2 format=3 uid="uid://draft_scene_001"]
+
+[ext_resource type="Script" uid="uid://draft_script_001" path="res://scripts/core/Draft.gd" id="1_draft"]
+
+[node name="DraftScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_draft")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "OFF-SEASON DRAFT"
+horizontal_alignment = 1
+
+[node name="DivisionLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Division: High School"
+horizontal_alignment = 1
+
+[node name="AnteLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Ante: 1"
+horizontal_alignment = 1
+
+[node name="InstructionsLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Select a runner to add to your team, or skip this draft."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="HSeparator" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CandidatesLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Draft Candidates:"
+horizontal_alignment = 1
+
+[node name="CandidatesScrollContainer" type="ScrollContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 400)
+horizontal_scroll_mode = 0
+
+[node name="CandidatesContainer" type="GridContainer" parent="UI/ScrollContainer/VBoxContainer/CandidatesScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 5
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HSeparator2" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SelectedCandidatePanel" type="PanelContainer" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer"]
+layout_mode = 2
+
+[node name="SelectedLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Selected Candidate:"
+horizontal_alignment = 1
+
+[node name="SelectedNameLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Runner Name"
+horizontal_alignment = 1
+
+[node name="SelectedTierLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Tier"
+horizontal_alignment = 1
+
+[node name="SelectedStatsLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Stats: Speed X | Endurance X | Stamina X | Power X"
+horizontal_alignment = 1
+
+[node name="SelectedGrowthLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Growth: X.x"
+horizontal_alignment = 1
+
+[node name="SelectedDescriptionLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/SelectedCandidatePanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "Description"
+
+[node name="HSeparator3" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TeamPreviewLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Current Team: X Varsity, X JV"
+horizontal_alignment = 1
+
+[node name="HSeparator4" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+alignment = 1
+
+[node name="SelectButton" type="Button" parent="UI/ScrollContainer/VBoxContainer/ActionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(200, 50)
+theme_override_font_sizes/font_size = 20
+text = "Select Runner"
+disabled = true
+
+[node name="SkipButton" type="Button" parent="UI/ScrollContainer/VBoxContainer/ActionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(200, 50)
+theme_override_font_sizes/font_size = 20
+text = "Skip Draft"
+

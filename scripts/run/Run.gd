@@ -398,9 +398,33 @@ func _on_complete_race_pressed() -> void:
 func _on_continue_to_shop_pressed() -> void:
 	# Deselect card when navigating to shop
 	card_interaction.deselect_team_card()
-	run_ui.show_loading_screen("Loading Shop...")
-	await get_tree().create_timer(0.5).timeout
-	get_tree().change_scene_to_file("res://scenes/core/ShopScene.tscn")
+	
+	# Check if draft should appear before shop
+	if _should_show_draft():
+		run_ui.show_loading_screen("Loading Draft...")
+		await get_tree().create_timer(0.5).timeout
+		get_tree().change_scene_to_file("res://scenes/core/DraftScene.tscn")
+	else:
+		run_ui.show_loading_screen("Loading Shop...")
+		await get_tree().create_timer(0.5).timeout
+		get_tree().change_scene_to_file("res://scenes/core/ShopScene.tscn")
+
+func _should_show_draft() -> bool:
+	# Only show draft ONCE at the very start (ante 1) if not already completed
+	# Never show at any other ante (ante 2, 3, 4, etc.)
+	
+	# Explicit check: ONLY show if ante is exactly 1 AND draft hasn't been completed
+	if GameManager.current_ante != 1:
+		# Not at ante 1, so never show draft
+		return false
+	
+	# We're at ante 1, but check if draft was already completed
+	if GameManager.draft_completed:
+		# Draft already completed, don't show again
+		return false
+	
+	# At ante 1 and draft not completed - show it
+	return true
 
 func _on_view_team_pressed() -> void:
 	# Deselect card when navigating to team management
