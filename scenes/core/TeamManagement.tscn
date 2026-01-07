@@ -1,0 +1,76 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7k8nan0p1q2r"]
+
+[ext_resource type="Script" path="res://scripts/core/TeamManagement.gd" id="1_team"]
+
+[node name="TeamManagement" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_team")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "TEAM MANAGEMENT"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VarsitySection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VarsityHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/VarsitySection"]
+layout_mode = 2
+text = "--- VARSITY TEAM (5 slots) ---"
+horizontal_alignment = 1
+
+[node name="VarsityContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/VarsitySection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="JVSection" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="JVHeader" type="Label" parent="UI/ScrollContainer/VBoxContainer/JVSection"]
+layout_mode = 2
+text = "--- JV TEAM (2 slots) ---"
+horizontal_alignment = 1
+
+[node name="JVInfoLabel" type="Label" parent="UI/ScrollContainer/VBoxContainer/JVSection"]
+layout_mode = 2
+text = "JV provides 25% stat bonus (support/development)"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="JVContainer" type="VBoxContainer" parent="UI/ScrollContainer/VBoxContainer/JVSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator3" type="HSeparator" parent="UI/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="UI/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
