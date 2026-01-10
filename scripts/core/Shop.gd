@@ -600,6 +600,10 @@ func _on_item_selected(item: Item) -> void:
 			available_items.remove_at(i)
 			break
 	
+	# Get win probability BEFORE purchase for debugging
+	var win_prob_before = RaceLogic.calculate_win_probability_monte_carlo()
+	var team_stats_before = _get_team_stats_summary()
+	
 	# Show purchase feedback
 	_show_purchase_feedback("✓ Purchased: %s!" % item.name.split(":")[1] if ":" in item.name else item.name)
 	
@@ -607,6 +611,131 @@ func _on_item_selected(item: Item) -> void:
 	_update_display()
 	# Redisplay items (this will update button states based on new gold amount)
 	_display_available_items()
+	
+	# Get win probability AFTER purchase for debugging
+	var win_prob_after = RaceLogic.calculate_win_probability_monte_carlo()
+	var team_stats_after = _get_team_stats_summary()
+	
+	# Log shop item impact
+	_log_shop_item_impact(item, win_prob_before, win_prob_after, team_stats_before, team_stats_after)
+
+func _get_team_stats_summary() -> Dictionary:
+	# Calculate total team stats for debugging
+	var total_speed = 0
+	var total_endurance = 0
+	var total_stamina = 0
+	var total_power = 0
+	
+	for runner_string in GameManager.varsity_team:
+		# Use get_item_effect to see what race calculations actually use
+		var effect = GameManager.get_item_effect(runner_string, "team")
+		total_speed += effect.speed
+		total_endurance += effect.endurance
+		total_stamina += effect.stamina
+		total_power += effect.power
+	
+	return {
+		"speed": total_speed,
+		"endurance": total_endurance,
+		"stamina": total_stamina,
+		"power": total_power,
+		"total": total_speed + total_endurance + total_stamina + total_power
+	}
+
+func _log_shop_item_impact(item: Item, win_prob_before: float, win_prob_after: float,
+		team_stats_before: Dictionary, team_stats_after: Dictionary) -> void:
+	
+	var separator = "============================================================"
+	print("\n" + separator)
+	print("[SHOP ITEM IMPACT DEBUG]")
+	print(separator)
+	
+	var item_name = item.name
+	if ":" in item.name:
+		item_name = item.name.split(":")[1].strip_edges()
+	
+	print("Item: %s (%s)" % [item_name, item.category])
+	print("Price: %d Gold" % item.price)
+	print("")
+	
+	# Get item effect
+	var effect = GameManager.get_item_effect(item.name, item.category)
+	var stat_gain = effect.speed + effect.endurance + effect.stamina + effect.power
+	
+	print("ITEM STAT BONUS:")
+	print("  Speed:    +%d" % effect.speed)
+	print("  Endurance: +%d" % effect.endurance)
+	print("  Stamina:   +%d" % effect.stamina)
+	print("  Power:     +%d" % effect.power)
+	print("  Total:     +%d stats" % stat_gain)
+	print("")
+	
+	# Team stat changes
+	print("TEAM STAT CHANGES (Varsity Total):")
+	print("  Speed:    %d → %d (%+d)" % [team_stats_before.speed, team_stats_after.speed, team_stats_after.speed - team_stats_before.speed])
+	print("  Endurance: %d → %d (%+d)" % [team_stats_before.endurance, team_stats_after.endurance, team_stats_after.endurance - team_stats_before.endurance])
+	print("  Stamina:   %d → %d (%+d)" % [team_stats_before.stamina, team_stats_after.stamina, team_stats_after.stamina - team_stats_before.stamina])
+	print("  Power:     %d → %d (%+d)" % [team_stats_before.power, team_stats_after.power, team_stats_after.power - team_stats_before.power])
+	print("  Total:     %d → %d (%+d)" % [team_stats_before.total, team_stats_after.total, team_stats_after.total - team_stats_before.total])
+	print("")
+	
+	# Win probability changes
+	var win_prob_change = win_prob_after - win_prob_before
+	var win_prob_change_pct = 0.0
+	if win_prob_before > 0:
+		win_prob_change_pct = (win_prob_change / win_prob_before) * 100.0
+	
+	print("WIN PROBABILITY IMPACT:")
+	print("  Before: %.2f%%" % win_prob_before)
+	print("  After:  %.2f%%" % win_prob_after)
+	print("  Change: %+.2f%% (%+.2f%%)" % [win_prob_change, win_prob_change_pct])
+	print("")
+	
+	# Explain why shop items are more effective
+	print("WHY SHOP ITEMS ARE MORE EFFECTIVE THAN TRAINING:")
+	if item.category == "equipment" or item.category == "deck":
+		var runners_affected = GameManager.varsity_team.size()
+		var effective_stat_gain = stat_gain * runners_affected
+		print("  ✓ Applies to ALL %d runners = +%d effective stats" % [runners_affected, effective_stat_gain])
+		print("  ✓ Training only affects 1 runner = +%d stats" % stat_gain)
+		print("  ✓ Shop items are %.1fx more effective per purchase!" % (float(effective_stat_gain) / stat_gain))
+	else:
+		print("  ✓ %s items provide team-wide bonuses" % item.category)
+		print("  ✓ Training only affects individual runners")
+	print("")
+	
+	# Opponent scaling
+	var player_avg_strength_before = _calculate_avg_team_strength(team_stats_before)
+	var player_avg_strength_after = _calculate_avg_team_strength(team_stats_after)
+	var ante = GameManager.current_ante
+	var difficulty_multiplier = 1.0 + (pow(ante, 1.1) * 0.20)
+	var base_target_ratio = 1.10
+	var target_ratio = base_target_ratio - (ante * 0.03)
+	target_ratio = max(target_ratio, 0.85)
+	
+	var opponent_target_before = player_avg_strength_before * target_ratio
+	var opponent_target_after = player_avg_strength_after * target_ratio
+	
+	print("OPPONENT SCALING:")
+	print("  Player Avg Strength: %.2f → %.2f" % [player_avg_strength_before, player_avg_strength_after])
+	print("  Opponent Target:      %.2f → %.2f" % [opponent_target_before, opponent_target_after])
+	print("  Difficulty Multiplier (Ante %d): %.2fx" % [ante, difficulty_multiplier])
+	print("")
+	print("  Note: Opponents ONLY scale with ante (not with player strength),")
+	print("        so shop items give you a real advantage!")
+	
+	print(separator)
+	print("")
+
+func _calculate_avg_team_strength(team_stats: Dictionary) -> float:
+	# Calculate average team strength using the same formula as RaceLogic
+	var speed_score = team_stats.speed * 0.4
+	var power_score = team_stats.power * 0.3
+	var endurance_score = team_stats.endurance * 0.2
+	var stamina_score = team_stats.stamina * 0.1
+	var raw_stat_total = speed_score + power_score + endurance_score + stamina_score
+	var base_strength = 15.0 / (1.0 + raw_stat_total / 10.0)
+	return base_strength
 
 func _show_purchase_feedback(message: String) -> void:
 	purchase_feedback_label.text = message

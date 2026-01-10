@@ -18,7 +18,8 @@ const MONTE_CARLO_ITERATIONS: int = 500  # Number of simulations for win probabi
 
 # Calculate win probability using Monte Carlo simulation
 # This matches the actual race simulation logic
-static func calculate_win_probability_monte_carlo() -> float:
+# fixed_seed: Optional seed for consistent comparisons (e.g., before/after training)
+static func calculate_win_probability_monte_carlo(fixed_seed: int = -1) -> float:
 	if GameManager.varsity_team.size() < 5:
 		print("[DEBUG] Win Probability: Team size < 5, returning 0%")
 		return 0.0
@@ -44,8 +45,14 @@ static func calculate_win_probability_monte_carlo() -> float:
 	# Run Monte Carlo simulations
 	for i in range(MONTE_CARLO_ITERATIONS):
 		# Use a different seed for each simulation to get varied results
-		# Base seed + iteration offset + ante offset
-		var simulation_seed = GameManager.seed + i * 10000 + GameManager.current_ante * 1000
+		# If fixed_seed is provided, use it for consistent comparisons
+		var simulation_seed: int
+		if fixed_seed >= 0:
+			# Use fixed seed + iteration offset for consistent but varied simulations
+			simulation_seed = fixed_seed + i * 10000
+		else:
+			# Normal mode: Base seed + iteration offset + ante offset
+			simulation_seed = GameManager.seed + i * 10000 + GameManager.current_ante * 1000
 		seed(simulation_seed)
 		
 		# Simulate a race
@@ -467,47 +474,27 @@ static func calculate_runner_strength(runner_name: String, is_player: bool = tru
 
 # Calculate target strength for an opponent team based on ante and race type
 # This calculates the BASE strength (before difficulty multiplier is applied in performance)
+# IMPORTANT: Opponents ONLY scale with ante, NOT with player team strength
+# This makes player improvements (equipment, training, boosts) feel impactful
 static func calculate_target_opponent_strength() -> float:
-	# Calculate average player team strength (base performance, no variance)
-	# IMPORTANT: Use is_player=true to include all bonuses (equipment, boosts, deck)
-	# NOTE: Only count varsity runners - JV doesn't race, so shouldn't affect opponent scaling
-	var player_team_strength = 0.0
-	for runner in GameManager.varsity_team:
-		player_team_strength += calculate_runner_strength(runner, true)  # Include all bonuses
+	# Fixed base opponent strength (independent of player team strength)
+	# This is a performance value where lower = better finish
+	# At ante 1, opponents are moderately challenging
+	var base_opponent_strength = 6.0
 	
-	# NOTE: JV runners don't race, so they shouldn't directly affect opponent scaling
-	# JV provides a small team-wide support bonus (25% of their stats)
-	# But for opponent scaling, we should only use varsity strength to avoid over-scaling
-	# JV bonus is applied in get_total_* functions for display, but not here for opponent scaling
-	
-	var avg_player_strength = player_team_strength / float(max(1, GameManager.varsity_team.size()))
-	
-	# Calculate the difficulty multiplier that will be applied to opponents
-	var difficulty_multiplier = 1.0 + (pow(GameManager.current_ante, DIFFICULTY_EXPONENT) * BASE_DIFFICULTY_MULTIPLIER)
-	
-	# Target: opponent performance (after multiplier) should be competitive with player
-	# opponent_final = opponent_base * difficulty_multiplier
-	# We want opponent_final ≈ player_base * target_ratio
-	# So: opponent_base ≈ (player_base * target_ratio) / difficulty_multiplier
-	
-	# Target ratio: starts competitive and increases with ante to make it harder
-	# IMPORTANT: With the new formula (base_performance = 15.0 / (1 + stats/10.0)),
-	# lower performance = better finish. So "strength" here is actually performance (lower = better).
-	# To make opponents weaker, give them HIGHER performance (worse finish).
-	# To make opponents stronger, give them LOWER performance (better finish).
-	# At ante 1, opponents should be ~10% weaker (10% higher performance)
-	# As ante increases, opponents get progressively stronger (lower performance)
-	var base_target_ratio = 1.10  # Opponents 10% weaker at ante 1 (higher performance)
-	var target_ratio = base_target_ratio - (GameManager.current_ante * 0.03)  # -3% per ante (stronger)
-	target_ratio = max(target_ratio, 0.85)  # Cap at 85% (opponents never stronger than 15% gap)
-	
-	# Calculate target strength: if player has performance X, opponent should have performance X * target_ratio
-	# Higher performance = worse finish, so target_ratio > 1.0 means opponents are weaker
-	var target_base_strength = avg_player_strength * target_ratio
+	# Scale with ante: opponents get progressively stronger as ante increases
+	# Each ante level makes opponents ~12% stronger (divide by scaling factor)
+	# Ante 1: 6.0 (base)
+	# Ante 2: 6.0 / 1.12 = 5.36 (~12% stronger)
+	# Ante 3: 6.0 / 1.24 = 4.84 (~24% stronger)
+	# Ante 4: 6.0 / 1.36 = 4.41 (~36% stronger)
+	# etc.
+	var ante_scaling_factor = 1.0 + ((GameManager.current_ante - 1) * 0.12)
+	var scaled_strength = base_opponent_strength / ante_scaling_factor
 	
 	# Apply special rule opponent strength multiplier (e.g., elite_opponents makes them 20% stronger)
 	# Since lower performance = better finish, divide by multiplier to make opponents stronger
-	target_base_strength = target_base_strength / GameManager.opponent_base_strength_multiplier
+	scaled_strength = scaled_strength / GameManager.opponent_base_strength_multiplier
 	
 	# Championship races have stronger opponents (applied to base, before difficulty multiplier)
 	# IMPORTANT: With new formula, lower performance = better finish
@@ -526,7 +513,75 @@ static func calculate_target_opponent_strength() -> float:
 	
 	# Return base strength (the difficulty multiplier will be applied during performance calculation)
 	# Multiply by < 1.0 to make opponents stronger (lower performance = better finish)
-	return target_base_strength * race_type_modifier
+	# Ensure minimum strength to prevent opponents from being too weak
+	return max(scaled_strength * race_type_modifier, 1.0)
+
+
+# Get base runner stats (without training gains or equipment)
+# This is used for opponent scaling so training doesn't make opponents stronger
+static func _get_base_runner_stats(runner_name: String) -> Dictionary:
+	var effect = {
+		"speed": 0,
+		"endurance": 0,
+		"stamina": 0,
+		"power": 0
+	}
+	
+	match runner_name:
+		# Common Runners (Ante 1+)
+		"Hill Specialist":
+			effect.power = 15
+			effect.speed = 5
+		"Steady State Runner":
+			effect.endurance = 15
+			effect.stamina = 10
+		"Tempo Runner":
+			effect.endurance = 10
+			effect.speed = 10
+		"The Closer":
+			effect.speed = 15
+			effect.stamina = 5
+		"Freshman Walk-on":
+			effect.speed = 5
+			effect.endurance = 5
+			effect.stamina = 5
+			effect.power = 5
+		"Track Tourist":
+			effect.speed = 22
+			effect.power = -5  # Negative stat
+		"Short-Cutter":
+			effect.speed = 12
+			effect.endurance = 8
+		# Rare Runners (Ante 5+)
+		"Elite V-State Harrier":
+			effect.speed = 25
+			effect.power = 15
+		"All-Terrain Captain":
+			effect.speed = 18
+			effect.endurance = 18
+			effect.stamina = 15
+			effect.power = 12
+		"Caffeine Fiend":
+			effect.speed = 25
+			effect.stamina = -15  # Negative stat
+		"Ghost of the Woods":
+			effect.endurance = 20
+			effect.power = 12
+		# Epic Runners (Ante 8+)
+		"The Legend":
+			effect.speed = 30
+			effect.endurance = 30
+		"JV Legend":
+			effect.speed = 10
+			effect.endurance = 10
+			effect.stamina = 10
+			effect.power = 10
+		_:
+			# Default fallback
+			effect.speed = 10
+			effect.endurance = 10
+	
+	return effect
 
 
 # Generate a single opponent team with calculated strength

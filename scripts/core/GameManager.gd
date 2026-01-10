@@ -477,6 +477,9 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	jokers.clear()
 	shop_inventory.clear()
 	
+	# Clear Runner objects (training resets on new run)
+	runner_objects.clear()
+	
 	# Reset currency
 	training_points = 0
 	
@@ -862,7 +865,19 @@ func calculate_training_points(race_result: Dictionary) -> int:
 	return points
 
 
+# Store Runner objects to persist training gains
+var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object
+
+# Get or create Runner object for a runner string
+func get_runner_object(runner_string: String) -> Runner:
+	if not runner_objects.has(runner_string):
+		# Create and store Runner object
+		var runner = Runner.from_string(runner_string)
+		runner_objects[runner_string] = runner
+	return runner_objects[runner_string]
+
 # Get item effect - returns a dictionary with stat bonuses
+# For runners, now includes training gains if Runner object exists
 func get_item_effect(item_name: String, category: String) -> Dictionary:
 	var effect = {
 		"speed": 0,
@@ -879,6 +894,17 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 	
 	match category:
 		"team":
+			# Check if we have a Runner object with training gains
+			if runner_objects.has(item_name):
+				var runner = runner_objects[item_name]
+				var effective_stats = runner.get_effective_stats()
+				effect.speed = effective_stats.speed
+				effect.endurance = effective_stats.endurance
+				effect.stamina = effective_stats.stamina
+				effect.power = effective_stats.power
+				return effect
+			
+			# Otherwise, use base stats from runner type definition
 			# Runners add base stats
 			match base_name:
 				# Common Runners (Ante 1+)
