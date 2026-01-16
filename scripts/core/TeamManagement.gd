@@ -20,9 +20,8 @@ func _display_team() -> void:
 		
 		if i < GameManager.varsity_team.size():
 			# Show runner info with management buttons
-			var runner = GameManager.varsity_team[i]
-			var effect = GameManager.get_item_effect(runner, "team")
-			var runner_label = _create_runner_label("Slot %d: %s" % [i + 1, runner], effect)
+			var runner_string = GameManager.varsity_team[i]
+			var runner_label = _create_runner_label_with_training("Slot %d: %s" % [i + 1, runner_string], runner_string)
 			slot_container.add_child(runner_label)
 			
 			# Add management buttons
@@ -51,9 +50,8 @@ func _display_team() -> void:
 		
 		if i < GameManager.jv_team.size():
 			# Show runner info with management buttons
-			var runner = GameManager.jv_team[i]
-			var effect = GameManager.get_item_effect(runner, "team")
-			var runner_label = _create_runner_label("JV Slot %d: %s" % [i + 1, runner], effect)
+			var runner_string = GameManager.jv_team[i]
+			var runner_label = _create_runner_label_with_training("JV Slot %d: %s" % [i + 1, runner_string], runner_string)
 			slot_container.add_child(runner_label)
 			
 			# Add management buttons
@@ -95,6 +93,70 @@ func _create_runner_label(text: String, effect: Dictionary) -> Label:
 	label.text = text + effect_text
 	label.horizontal_alignment = 1
 	return label
+
+func _create_runner_label_with_training(text: String, runner_string: String) -> VBoxContainer:
+	# Create a container for all runner information
+	var container = VBoxContainer.new()
+	container.add_theme_constant_override("separation", 2)
+	
+	# Create Runner object to get training data
+	var runner = Runner.from_string(runner_string)
+	var stats = runner.get_display_stats()
+	var injury_status = runner.get_injury_status()
+	
+	# Main runner name and base info
+	var main_label = Label.new()
+	var runner_name = runner_string
+	if ":" in runner_string:
+		runner_name = runner_string.split(":")[1].strip_edges()
+	main_label.text = text
+	main_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main_label.add_theme_font_size_override("font_size", 14)
+	container.add_child(main_label)
+	
+	# Current stats (base + training gains)
+	var stats_label = Label.new()
+	stats_label.text = "Stats: Spd:%d End:%d Sta:%d Pow:%d" % [
+		stats.current.speed, stats.current.endurance, stats.current.stamina, stats.current.power
+	]
+	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_label.add_theme_font_size_override("font_size", 12)
+	container.add_child(stats_label)
+	
+	# Training gains (if any)
+	var gains = stats.training_gains
+	if gains.speed > 0 or gains.endurance > 0 or gains.stamina > 0 or gains.power > 0:
+		var gains_label = Label.new()
+		gains_label.text = "Training: +%d Spd, +%d End, +%d Sta, +%d Pow" % [
+			gains.speed, gains.endurance, gains.stamina, gains.power
+		]
+		gains_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		gains_label.add_theme_font_size_override("font_size", 11)
+		gains_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))  # Green for gains
+		container.add_child(gains_label)
+	
+	# Injury status
+	var injury_label = Label.new()
+	if injury_status.is_injured:
+		injury_label.text = "⚠️ Injured: %.0f%% (%s)" % [injury_status.meter, injury_status.severity]
+		injury_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))  # Red for injury
+	else:
+		injury_label.text = "✓ Healthy (Injury: %.0f%%)" % injury_status.meter
+		injury_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))  # Green for healthy
+	injury_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	injury_label.add_theme_font_size_override("font_size", 11)
+	container.add_child(injury_label)
+	
+	# Training history count
+	if runner.total_training_sessions > 0:
+		var history_label = Label.new()
+		history_label.text = "Training Sessions: %d" % runner.total_training_sessions
+		history_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		history_label.add_theme_font_size_override("font_size", 10)
+		history_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))  # Light blue
+		container.add_child(history_label)
+	
+	return container
 
 func _create_empty_slot_label(text: String) -> Label:
 	var label = Label.new()

@@ -29,6 +29,7 @@ var draft_completed := false  # Track if initial draft has been completed
 
 # Currency
 var gold := 100          # Starting gold for new runs
+var training_points := 0  # Training points earned from races
 
 # Base stats
 var base_speed := 10
@@ -476,6 +477,12 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	jokers.clear()
 	shop_inventory.clear()
 	
+	# Clear Runner objects (training resets on new run)
+	runner_objects.clear()
+	
+	# Reset currency
+	training_points = 0
+	
 	# Reset draft flag
 	draft_completed = false
 	
@@ -812,8 +819,65 @@ func calculate_consolation_reward() -> int:
 	var win_reward = calculate_race_reward()
 	return max(5, int(win_reward * 0.35))  # Minimum 5 gold, even for early antes
 
+# ============================================
+# TRAINING POINTS SYSTEM
+# ============================================
+
+func earn_training_points(amount: int) -> void:
+	training_points += amount
+	print("Earned %d training points. Total: %d" % [amount, training_points])
+
+func spend_training_points(amount: int) -> bool:
+	if training_points >= amount:
+		training_points -= amount
+		print("Spent %d training points. Remaining: %d" % [amount, training_points])
+		return true
+	print("Not enough training points! Need %d, have %d" % [amount, training_points])
+	return false
+
+func get_training_points() -> int:
+	return training_points
+
+# Calculate training points awarded based on race performance
+# Win: 5 points, Loss: 3 points, with bonuses for top placements
+func calculate_training_points(race_result: Dictionary) -> int:
+	var points = 0
+	
+	if race_result.get("won", false):
+		# Base points for winning
+		points = 5
+		
+		# Bonus for top placement
+		var placement = race_result.get("player_placement", 999)
+		if placement == 1:
+			points += 2  # +2 bonus for 1st place
+		elif placement <= 3:
+			points += 1  # +1 bonus for top 3
+	else:
+		# Base points for losing (still get some points for participation)
+		points = 3
+		
+		# Small bonus for good placement even on loss
+		var placement = race_result.get("player_placement", 999)
+		if placement <= 3:
+			points += 1  # +1 bonus for top 3 even if lost
+	
+	return points
+
+
+# Store Runner objects to persist training gains
+var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object
+
+# Get or create Runner object for a runner string
+func get_runner_object(runner_string: String) -> Runner:
+	if not runner_objects.has(runner_string):
+		# Create and store Runner object
+		var runner = Runner.from_string(runner_string)
+		runner_objects[runner_string] = runner
+	return runner_objects[runner_string]
 
 # Get item effect - returns a dictionary with stat bonuses
+# For runners, now includes training gains if Runner object exists
 func get_item_effect(item_name: String, category: String) -> Dictionary:
 	var effect = {
 		"speed": 0,
@@ -830,6 +894,17 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 	
 	match category:
 		"team":
+			# Check if we have a Runner object with training gains
+			if runner_objects.has(item_name):
+				var runner = runner_objects[item_name]
+				var effective_stats = runner.get_effective_stats()
+				effect.speed = effective_stats.speed
+				effect.endurance = effective_stats.endurance
+				effect.stamina = effective_stats.stamina
+				effect.power = effective_stats.power
+				return effect
+			
+			# Otherwise, use base stats from runner type definition
 			# Runners add base stats
 			match base_name:
 				# Common Runners (Ante 1+)

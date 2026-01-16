@@ -22,298 +22,93 @@ color = Color(0.949, 0.918, 0.843, 1)
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="ClipboardContainer" type="MarginContainer" parent="UI"]
+[node name="MainContainer" type="Control" parent="UI"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 40
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 40
 
-[node name="ClipboardPanel" type="PanelContainer" parent="UI/ClipboardContainer"]
+[node name="Title" type="Label" parent="UI/MainContainer"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="ClipboardMargin" type="MarginContainer" parent="UI/ClipboardContainer/ClipboardPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 30
-theme_override_constants/margin_top = 30
-theme_override_constants/margin_right = 30
-theme_override_constants/margin_bottom = 30
-
-[node name="ClipboardContent" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="HeaderSection" type="HBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 0
-
-[node name="PaperClipLeft" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection"]
-layout_mode = 2
-size_flags_horizontal = 0
-text = "📎"
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.1
+anchor_right = 0.5
+anchor_bottom = 0.1
+offset_left = -194.0
+offset_top = 46.199997
+offset_right = 206.0
+offset_bottom = 178.2
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 96
+text = "FARTLEK"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HeaderSpacer" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection"]
-layout_mode = 2
-size_flags_horizontal = 5
-
-[node name="TitleContainer" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Title" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection/TitleContainer"]
+[node name="ButtonContainer" type="PanelContainer" parent="UI/MainContainer"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 64
-text = "CURSUS"
-horizontal_alignment = 1
-vertical_alignment = 1
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -350.0
+offset_top = -220.0
+offset_right = 350.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
 
-[node name="Subtitle" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection/TitleContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Citius, Altius, Fortius"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="HeaderSpacer2" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection"]
-layout_mode = 2
-size_flags_horizontal = 5
-
-[node name="PaperClipRight" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/HeaderSection"]
-layout_mode = 2
-size_flags_horizontal = 0
-text = "📎"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="DividerLine" type="ColorRect" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 2)
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="ContentSpacer" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_vertical = 0
-
-[node name="MenuGrid" type="GridContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 3
-columns = 2
-
-[node name="NewRunCard" type="PanelContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="CardMargin" type="MarginContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard"]
+[node name="ButtonMargin" type="MarginContainer" parent="UI/MainContainer/ButtonContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_top = 15
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 15
 
-[node name="CardContent" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard/CardMargin"]
+[node name="ButtonRow" type="HBoxContainer" parent="UI/MainContainer/ButtonContainer/ButtonMargin"]
+unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
 
-[node name="CardIcon" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "🏃"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardTitle" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "New Run"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardDescription" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Start a fresh race"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 2
-
-[node name="CardButton" type="Button" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/NewRunCard/CardMargin/CardContent"]
-custom_minimum_size = Vector2(0, 40)
+[node name="PlayButton" type="Button" parent="UI/MainContainer/ButtonContainer/ButtonMargin/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-text = "Begin"
+text = "PLAY"
 
-[node name="ContinueCard" type="PanelContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid"]
+[node name="OptionsButton" type="Button" parent="UI/MainContainer/ButtonContainer/ButtonMargin/ButtonRow"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="CardMargin" type="MarginContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard"]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="CardContent" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard/CardMargin"]
-layout_mode = 2
-
-[node name="CardIcon" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "▶️"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardTitle" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Continue"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardDescription" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Resume your race"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 2
-
-[node name="CardButton" type="Button" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/ContinueCard/CardMargin/CardContent"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-text = "Resume"
+text = "OPTIONS"
 
-[node name="CollectionCard" type="PanelContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid"]
+[node name="ContinueButton" type="Button" parent="UI/MainContainer/ButtonContainer/ButtonMargin/ButtonRow"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="CardMargin" type="MarginContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard"]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="CardContent" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard/CardMargin"]
-layout_mode = 2
-
-[node name="CardIcon" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "📚"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardTitle" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Collection"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardDescription" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "View your cards"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 2
-
-[node name="CardButton" type="Button" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/CollectionCard/CardMargin/CardContent"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-text = "View"
+text = "CONTINUE"
 
-[node name="OptionsCard" type="PanelContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid"]
+[node name="CollectionButton" type="Button" parent="UI/MainContainer/ButtonContainer/ButtonMargin/ButtonRow"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="CardMargin" type="MarginContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard"]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="CardContent" type="VBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard/CardMargin"]
-layout_mode = 2
-
-[node name="CardIcon" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "⚙️"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardTitle" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Options"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CardDescription" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard/CardMargin/CardContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Settings & preferences"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 2
-
-[node name="CardButton" type="Button" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/MenuGrid/OptionsCard/CardMargin/CardContent"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-text = "Settings"
-
-[node name="FooterSpacer" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="FooterSection" type="HBoxContainer" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="VersionLabel" type="Label" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/FooterSection"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 0
-text = "v0.35-alpha"
-vertical_alignment = 1
-
-[node name="FooterSpacer" type="Control" parent="UI/ClipboardContainer/ClipboardPanel/ClipboardMargin/ClipboardContent/FooterSection"]
-layout_mode = 2
-size_flags_horizontal = 5
+text = "COLLECTION"

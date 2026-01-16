@@ -15,6 +15,7 @@ extends Control
 @onready var team_preview_label: Label = %TeamPreviewLabel
 @onready var select_button: Button = %SelectButton
 @onready var skip_button: Button = %SkipButton
+@onready var random_select_button: Button = %RandomSelectButton
 
 # Draft state
 var draft_candidates: Array[Runner] = []
@@ -28,6 +29,7 @@ var starting_team_backup: Array[String] = []
 func _ready() -> void:
 	select_button.pressed.connect(_on_select_pressed)
 	skip_button.pressed.connect(_on_skip_pressed)
+	random_select_button.pressed.connect(_on_random_select_pressed)
 	
 	# Backup starting team if this is the initial draft (before first race)
 	# This allows us to restore it if player skips
@@ -346,6 +348,44 @@ func _on_skip_pressed() -> void:
 		GameManager.draft_completed = true
 		print("Draft skipped! draft_completed flag set to: %s" % GameManager.draft_completed)
 		_continue_after_draft()
+
+func _on_random_select_pressed() -> void:
+	# Randomly select candidates until max_selections is reached
+	var available_candidates = []
+	for candidate in draft_candidates:
+		if not selected_runners.has(candidate):
+			available_candidates.append(candidate)
+	
+	# Calculate how many more we can select
+	var remaining_slots = max_selections - selected_runners.size()
+	if remaining_slots <= 0:
+		_show_selection_feedback("Already at maximum selections!", true)
+		return
+	
+	if available_candidates.is_empty():
+		_show_selection_feedback("No more candidates available!", true)
+		return
+	
+	# Randomly select from available candidates
+	available_candidates.shuffle()
+	var to_select = min(remaining_slots, available_candidates.size())
+	
+	for i in range(to_select):
+		var candidate = available_candidates[i]
+		selected_runners.append(candidate)
+	
+	# Update UI
+	_update_header()
+	_update_team_preview()
+	_update_card_highlights()
+	_update_selection_display()
+	
+	# Show feedback
+	_show_selection_feedback("✓ Randomly selected %d runner(s) (%d/%d)" % [to_select, selected_runners.size(), max_selections])
+	
+	# Automatically finish the draft after a brief delay
+	await get_tree().create_timer(0.5).timeout
+	_finish_draft()
 
 func _finish_draft() -> void:
 	# Add all selected runners to team (varsity first, then JV)
