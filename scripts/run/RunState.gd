@@ -139,11 +139,14 @@ func get_result_message(race_result: Dictionary) -> String:
 			result_message += "  ... (%d total runners)\n" % player_finishes.size()
 	else:
 		# Fallback to old format if all_runners not available
-		for i in range(min(5, race_result.player_positions.size())):
-			var pos = race_result.player_positions[i]
-			var suffix = _get_position_suffix(pos)
-			result_message += "  %d%s place\n" % [pos, suffix]
-	
+		var has_positions = race_result.has("player_positions")
+		if has_positions:
+			var positions = race_result.player_positions
+			if positions.size() > 0:
+				for i in range(min(5, positions.size())):
+					var pos = positions[i]
+					var suffix = _get_position_suffix(pos)
+					result_message += "  %d%s place\n" % [pos, suffix]
 	result_message += "\n"
 	
 	# Ante progression

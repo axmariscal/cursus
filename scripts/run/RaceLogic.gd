@@ -48,14 +48,18 @@ static func calculate_win_probability_monte_carlo(fixed_seed: int = -1) -> float
 		# If fixed_seed is provided, use it for consistent comparisons
 		var simulation_seed: int
 		if fixed_seed >= 0:
-			# Use fixed seed + iteration offset for consistent but varied simulations
-			simulation_seed = fixed_seed + i * 10000
+			# Use fixed seed + large iteration offset to separate opponent generation from variance
+			# IMPORTANT: Large offset (100000) ensures opponent generation and variance
+			# use different parts of the random sequence, preventing interference
+			simulation_seed = fixed_seed + i * 100000
 		else:
 			# Normal mode: Base seed + iteration offset + ante offset
 			simulation_seed = GameManager.seed + i * 10000 + GameManager.current_ante * 1000
+		
+		# Set seed BEFORE simulating race (this ensures all random operations use it)
 		seed(simulation_seed)
 		
-		# Simulate a race
+		# Simulate a race (opponent generation and performance variance will use the seed)
 		var race_result = _simulate_single_race()
 		
 		# Track performance data for first few simulations
@@ -87,7 +91,10 @@ static func calculate_win_probability_monte_carlo(fixed_seed: int = -1) -> float
 		opponent_race_performances.append(race_result.get("avg_opponent_perf", 0.0))
 	
 	# Restore original RNG state
-	randomize()
+	# IMPORTANT: Don't call randomize() when using fixed_seed, as it makes comparisons non-deterministic
+	# Only randomize when in normal mode (fixed_seed < 0)
+	if fixed_seed < 0:
+		randomize()
 	
 	# Calculate win probability
 	var win_probability = (float(wins) / float(MONTE_CARLO_ITERATIONS)) * 100.0
@@ -160,8 +167,10 @@ static func calculate_win_probability_monte_carlo(fixed_seed: int = -1) -> float
 
 
 # Simulate a single race (used by Monte Carlo)
+# Note: Seed should be set BEFORE calling this function
 static func _simulate_single_race() -> Dictionary:
 	# Generate all opponent teams based on race type
+	# This uses randi() and randf() which should use the seed set before this call
 	var opponent_teams = generate_opponent_teams()
 	
 	# Calculate performance for all runners
@@ -646,6 +655,7 @@ static func generate_single_opponent_team(team_index: int = 0) -> Array[String]:
 
 
 # Generate all opponent teams based on race type
+# Note: When using fixed seed for comparisons, opponent count should be deterministic
 static func generate_opponent_teams() -> Array[Array]:
 	var opponent_teams: Array[Array] = []
 	var num_opponents = 0
@@ -656,11 +666,16 @@ static func generate_opponent_teams() -> Array[Array]:
 		GameManager.RaceType.TRI_MEET:
 			num_opponents = 2
 		GameManager.RaceType.INVITATIONAL:
-			num_opponents = 3 + randi() % 3  # 3-5 opponents
+			# Use deterministic count based on seed for consistency with fixed seed comparisons
+			# This ensures same number of opponents are generated with fixed seed
+			var seed_hash = hash(str(GameManager.seed) + str(GameManager.current_ante) + str(GameManager.current_race_type))
+			num_opponents = 3 + (abs(seed_hash) % 3)  # 3-5 opponents, but deterministic
 		GameManager.RaceType.QUALIFIERS:
-			num_opponents = 6 + randi() % 4  # 6-9 opponents
+			var seed_hash = hash(str(GameManager.seed) + str(GameManager.current_ante) + str(GameManager.current_race_type))
+			num_opponents = 6 + (abs(seed_hash) % 4)  # 6-9 opponents
 		GameManager.RaceType.CHAMPIONSHIP:
-			num_opponents = 10 + randi() % 5  # 10-14 opponents
+			var seed_hash = hash(str(GameManager.seed) + str(GameManager.current_ante) + str(GameManager.current_race_type))
+			num_opponents = 10 + (abs(seed_hash) % 5)  # 10-14 opponents
 	
 	for i in range(num_opponents):
 		opponent_teams.append(generate_single_opponent_team(i))

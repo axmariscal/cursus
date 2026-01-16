@@ -380,4 +380,3 @@ func get_display_string() -> String:
 		current_stats.power,
 		injury_meter
 	]
-

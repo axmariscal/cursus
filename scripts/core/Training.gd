@@ -309,6 +309,8 @@ func _on_workout_selected(workout_type: String) -> void:
 	var comparison_seed = randi()  # Generate once, use for both before and after
 	
 	# Get win probability BEFORE training (using fixed seed)
+	# IMPORTANT: Set seed before calculation to ensure deterministic results
+	seed(comparison_seed)
 	var win_prob_before = RaceLogic.calculate_win_probability_monte_carlo(comparison_seed)
 	var team_stats_before = _get_team_stats_summary()
 	var opponent_target_before = RaceLogic.calculate_target_opponent_strength()
@@ -333,7 +335,14 @@ func _on_workout_selected(workout_type: String) -> void:
 	var injury_before = runner.get_injury_status()
 	
 	# Apply training (handles all workout types including recovery and intensive)
+	# Use a separate seed for training to avoid affecting race simulation RNG state
+	# This ensures training's randf() calls don't interfere with opponent generation
+	var training_seed = comparison_seed + 999999  # Large offset to separate from race RNG
+	seed(training_seed)
 	var gains = runner.apply_training(workout_type, base_gain)
+	
+	# Reset seed before "after" calculation to ensure same RNG sequence as "before"
+	seed(comparison_seed)
 	
 	# Get runner stats after training
 	var runner_stats_after = runner.get_display_stats()
