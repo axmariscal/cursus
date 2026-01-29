@@ -24,7 +24,7 @@ var selected_runners: Array[Runner] = []  # Track all selected runners
 var max_selections: int = 7  # 5 varsity + 2 JV
 
 # Store starting team to restore if skipped
-var starting_team_backup: Array[String] = []
+var starting_team_backup: Array[Runner] = []
 
 func _ready() -> void:
 	select_button.pressed.connect(_on_select_pressed)
@@ -392,13 +392,13 @@ func _finish_draft() -> void:
 	var team_size = GameManager.get_team_size()
 	
 	for runner in selected_runners:
-		var runner_string = runner.display_name
+		# Pass Runner object directly (no string conversion)
 		if team_size.varsity < 5:
-			if GameManager.add_varsity_runner(runner_string):
+			if GameManager.add_varsity_runner(runner):
 				team_size.varsity += 1
 				print("Added %s to varsity" % runner.name)
 		elif team_size.jv < 2:
-			if GameManager.add_jv_runner(runner_string):
+			if GameManager.add_jv_runner(runner):
 				team_size.jv += 1
 				print("Added %s to JV" % runner.name)
 		else:

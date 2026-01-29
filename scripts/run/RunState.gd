@@ -109,11 +109,16 @@ func get_result_message(race_result: Dictionary) -> String:
 		for i in range(all_runners.size()):
 			var runner_data = all_runners[i]
 			if runner_data.get("team_index", 0) == -1:  # Player team
-				var runner_name = runner_data.get("name", "Unknown")
-				# Extract just the runner type name (remove "Runner: " prefix)
-				var display_name = runner_name
-				if ":" in runner_name:
-					display_name = runner_name.split(":")[1].strip_edges()
+				var runner_or_name = runner_data.get("name", "Unknown")
+				# Handle both Runner objects and String names (for backward compatibility)
+				var display_name: String
+				if runner_or_name is Runner:
+					display_name = runner_or_name.name
+				else:
+					# Legacy string format
+					display_name = runner_or_name as String
+					if ":" in display_name:
+						display_name = display_name.split(":")[1].strip_edges()
 				
 				player_finishes.append({
 					"position": i + 1,

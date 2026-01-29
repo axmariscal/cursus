@@ -16,8 +16,8 @@ var max_ante := 20
 var current_race_type: RaceType = RaceType.DUAL_MEET
 
 # Team structure: 5 varsity + 2 JV
-var varsity_team = []    # 5 varsity runners (main scoring team)
-var jv_team = []         # 2 JV runners (support/development)
+var varsity_team: Array[Runner] = []    # 5 varsity runners (main scoring team)
+var jv_team: Array[Runner] = []         # 2 JV runners (support/development)
 var deck = []            # race event cards (support items)
 var jokers = []          # permanent runner modifiers
 var shop_inventory = []  # practice/shop selections (equipment)
@@ -479,6 +479,7 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	
 	# Clear Runner objects (training resets on new run)
 	runner_objects.clear()
+	runner_registry.clear()
 	
 	# Reset currency
 	training_points = 0
@@ -552,7 +553,9 @@ func _log_team_stats() -> void:
 func _give_basic_team() -> void:
 	# 5 Freshman Walk-ons (5/5/5/5 each = 25/25/25/25 total)
 	for i in range(5):
-		add_varsity_runner("Runner: Freshman Walk-on")
+		var runner = Runner.new("Freshman Walk-on", "Runner: Freshman Walk-on")
+		register_runner(runner)
+		add_varsity_runner(runner)
 
 func _give_common_team() -> void:
 	# Use seed for deterministic but varied teams
@@ -587,7 +590,11 @@ func _give_common_team() -> void:
 	
 	var selected_variant = team_variants[randi() % team_variants.size()]
 	
-	for runner in selected_variant:
+	for runner_string in selected_variant:
+		# Extract runner name from "Runner: Name" format
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 	
 	randomize()  # Restore global RNG
@@ -603,7 +610,10 @@ func _give_common_plus_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in common_plus_runners:
+	for runner_string in common_plus_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_rare_team() -> void:
@@ -617,7 +627,10 @@ func _give_rare_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in rare_runners:
+	for runner_string in rare_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_rare_plus_team() -> void:
@@ -631,7 +644,10 @@ func _give_rare_plus_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in rare_plus_runners:
+	for runner_string in rare_plus_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_epic_team() -> void:
@@ -645,7 +661,10 @@ func _give_epic_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in epic_runners:
+	for runner_string in epic_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_legendary_team() -> void:
@@ -659,7 +678,10 @@ func _give_legendary_team() -> void:
 		"Runner: JV Legend"               # Balanced: 10/10/10/10
 	]
 	
-	for runner in legendary_runners:
+	for runner_string in legendary_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _apply_division_special_rules(special_rules: Array) -> void:
@@ -866,7 +888,8 @@ func calculate_training_points(race_result: Dictionary) -> int:
 
 
 # Store Runner objects to persist training gains
-var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object
+var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object (kept for backward compatibility during migration)
+var runner_registry: Dictionary = {}  # Maps unique_id -> Runner object
 
 # Get or create Runner object for a runner string
 func get_runner_object(runner_string: String) -> Runner:
@@ -874,11 +897,24 @@ func get_runner_object(runner_string: String) -> Runner:
 		# Create and store Runner object
 		var runner = Runner.from_string(runner_string)
 		runner_objects[runner_string] = runner
+		# Also register in runner_registry by unique_id
+		runner_registry[runner.get_id()] = runner
 	return runner_objects[runner_string]
+
+# Register a Runner object in the registry
+func register_runner(runner: Runner) -> void:
+	runner_registry[runner.get_id()] = runner
+
+# Get Runner by unique_id from registry
+func get_runner_by_id(unique_id: int) -> Runner:
+	if runner_registry.has(unique_id):
+		return runner_registry[unique_id]
+	return null
 
 # Get item effect - returns a dictionary with stat bonuses
 # For runners, now includes training gains if Runner object exists
-func get_item_effect(item_name: String, category: String) -> Dictionary:
+# item_name can be either a String (for backward compatibility) or a Runner object
+func get_item_effect(item_name: Variant, category: String) -> Dictionary:
 	var effect = {
 		"speed": 0,
 		"endurance": 0,
@@ -887,22 +923,39 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 		"multiplier": 1.0  # For boosts
 	}
 	
-	# Extract base name (remove prefix like "Runner: ", "Card: ", etc.)
-	var base_name = item_name
-	if ":" in item_name:
-		base_name = item_name.split(":")[1].strip_edges()
+	# Extract base name for string-based lookups (for non-Runner items)
+	# If item_name is a Runner, we handle it directly in the "team" category
+	var base_name = ""
+	if item_name is String:
+		base_name = item_name
+		if ":" in item_name:
+			base_name = item_name.split(":")[1].strip_edges()
 	
 	match category:
 		"team":
-			# Check if we have a Runner object with training gains
-			if runner_objects.has(item_name):
-				var runner = runner_objects[item_name]
+			# Check if item_name is a Runner object directly
+			if item_name is Runner:
+				var runner = item_name as Runner
 				var effective_stats = runner.get_effective_stats()
 				effect.speed = effective_stats.speed
 				effect.endurance = effective_stats.endurance
 				effect.stamina = effective_stats.stamina
 				effect.power = effective_stats.power
 				return effect
+			
+			# Fallback: treat as string for backward compatibility
+			var runner_string = item_name as String
+			# Check if we have a Runner object with training gains (string lookup)
+			if runner_objects.has(runner_string):
+				var runner = runner_objects[runner_string]
+				var effective_stats = runner.get_effective_stats()
+				effect.speed = effective_stats.speed
+				effect.endurance = effective_stats.endurance
+				effect.stamina = effective_stats.stamina
+				effect.power = effective_stats.power
+				return effect
+			
+			# base_name already extracted above for string-based lookups
 			
 			# Otherwise, use base stats from runner type definition
 			# Runners add base stats
@@ -1079,47 +1132,85 @@ func get_runner_growth_potential(runner_name: String) -> Dictionary:
 
 
 # Team management functions
-func add_varsity_runner(runner_name: String) -> bool:
+func add_varsity_runner(runner: Runner) -> bool:
 	# Returns true if added, false if team is full
 	if varsity_team.size() >= 5:
 		return false
-	varsity_team.append(runner_name)
+	# Register runner in registry
+	register_runner(runner)
+	# Set team assignment properties
+	runner.is_varsity = true
+	runner.team_index = varsity_team.size()
+	varsity_team.append(runner)
 	return true
 
-func add_jv_runner(runner_name: String) -> bool:
+func add_jv_runner(runner: Runner) -> bool:
 	# Returns true if added, false if JV is full
 	if jv_team.size() >= 2:
 		return false
-	jv_team.append(runner_name)
+	# Register runner in registry
+	register_runner(runner)
+	# Set team assignment properties
+	runner.is_varsity = false
+	runner.team_index = jv_team.size()
+	jv_team.append(runner)
 	return true
 
-func remove_varsity_runner(index: int) -> String:
-	# Remove runner at index, return runner name
+func remove_varsity_runner(index: int) -> Runner:
+	# Remove runner at index, return Runner object
 	if index >= 0 and index < varsity_team.size():
-		return varsity_team.pop_at(index)
-	return ""
+		var runner = varsity_team.pop_at(index)
+		# Update team assignment properties
+		runner.is_varsity = false
+		runner.team_index = -1
+		# Update indices for remaining runners
+		for i in range(index, varsity_team.size()):
+			varsity_team[i].team_index = i
+		return runner
+	return null
 
-func remove_jv_runner(index: int) -> String:
-	# Remove runner at index, return runner name
+func remove_jv_runner(index: int) -> Runner:
+	# Remove runner at index, return Runner object
 	if index >= 0 and index < jv_team.size():
-		return jv_team.pop_at(index)
-	return ""
+		var runner = jv_team.pop_at(index)
+		# Update team assignment properties
+		runner.is_varsity = false
+		runner.team_index = -1
+		# Update indices for remaining runners
+		for i in range(index, jv_team.size()):
+			jv_team[i].team_index = i
+		return runner
+	return null
 
-func replace_varsity_runner(index: int, new_runner: String) -> String:
-	# Replace runner at index, return old runner name
+func replace_varsity_runner(index: int, new_runner: Runner) -> Runner:
+	# Replace runner at index, return old Runner object
 	if index >= 0 and index < varsity_team.size():
 		var old_runner = varsity_team[index]
+		# Update old runner's team assignment
+		old_runner.is_varsity = false
+		old_runner.team_index = -1
+		# Register and set new runner's team assignment
+		register_runner(new_runner)
+		new_runner.is_varsity = true
+		new_runner.team_index = index
 		varsity_team[index] = new_runner
 		return old_runner
-	return ""
+	return null
 
-func replace_jv_runner(index: int, new_runner: String) -> String:
-	# Replace runner at index, return old runner name
+func replace_jv_runner(index: int, new_runner: Runner) -> Runner:
+	# Replace runner at index, return old Runner object
 	if index >= 0 and index < jv_team.size():
 		var old_runner = jv_team[index]
+		# Update old runner's team assignment
+		old_runner.is_varsity = false
+		old_runner.team_index = -1
+		# Register and set new runner's team assignment
+		register_runner(new_runner)
+		new_runner.is_varsity = false
+		new_runner.team_index = index
 		jv_team[index] = new_runner
 		return old_runner
-	return ""
+	return null
 
 func get_team_size() -> Dictionary:
 	return {
@@ -1139,8 +1230,16 @@ func swap_varsity_to_jv(varsity_index: int, jv_index: int) -> bool:
 	var varsity_runner = varsity_team[varsity_index]
 	var jv_runner = jv_team[jv_index]
 	
+	# Swap the runners
 	varsity_team[varsity_index] = jv_runner
 	jv_team[jv_index] = varsity_runner
+	
+	# Update team assignment properties
+	varsity_runner.is_varsity = false
+	varsity_runner.team_index = jv_index
+	jv_runner.is_varsity = true
+	jv_runner.team_index = varsity_index
+	
 	return true
 
 func promote_jv_to_varsity(jv_index: int, varsity_index: int) -> bool:
@@ -1153,8 +1252,16 @@ func promote_jv_to_varsity(jv_index: int, varsity_index: int) -> bool:
 	var jv_runner = jv_team[jv_index]
 	var varsity_runner = varsity_team[varsity_index]
 	
+	# Swap the runners
 	varsity_team[varsity_index] = jv_runner
 	jv_team[jv_index] = varsity_runner
+	
+	# Update team assignment properties
+	jv_runner.is_varsity = true
+	jv_runner.team_index = varsity_index
+	varsity_runner.is_varsity = false
+	varsity_runner.team_index = jv_index
+	
 	return true
 
 func demote_varsity_to_jv(varsity_index: int, jv_index: int) -> bool:
@@ -1269,8 +1376,9 @@ func get_total_power() -> int:
 
 # Calculate a runner's race performance score (lower = better finish)
 # Delegates to RaceLogic for consistent calculations with updated variance and difficulty scaling
-func calculate_runner_performance(runner_name: String, is_player: bool = true) -> float:
-	return RaceLogic.calculate_runner_performance(runner_name, is_player)
+# runner can be Runner object or String for backward compatibility
+func calculate_runner_performance(runner: Variant, is_player: bool = true) -> float:
+	return RaceLogic.calculate_runner_performance(runner, is_player)
 
 
 # Generate a single opponent team

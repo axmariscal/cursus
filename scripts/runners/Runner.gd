@@ -49,6 +49,10 @@ var team_index: int = -1  # Index in varsity_team or jv_team array
 # Outstanding recruit flag (for D1/D2/D3)
 var is_outstanding_recruit: bool = false
 
+# Unique ID system
+var unique_id: int = -1
+static var next_id: int = 0
+
 # ============================================
 # CONSTRUCTOR
 # ============================================
@@ -56,6 +60,10 @@ var is_outstanding_recruit: bool = false
 func _init(runner_name: String = "", runner_display_name: String = ""):
 	name = runner_name
 	display_name = runner_display_name if runner_display_name != "" else "Runner: " + runner_name
+	
+	# Assign unique ID
+	unique_id = Runner.next_id
+	Runner.next_id += 1
 	
 	# Initialize stats from GameManager's get_item_effect
 	if runner_name != "":
@@ -364,6 +372,10 @@ func get_total_stats() -> int:
 func get_growth_score() -> float:
 	return (growth_potential.speed + growth_potential.endurance + 
 			growth_potential.stamina + growth_potential.power) / 4.0
+
+# Get unique ID
+func get_id() -> int:
+	return unique_id
 
 # Check if runner is ready for varsity (meets minimum stat requirements)
 func is_race_ready(min_total_stats: int = 50) -> bool:

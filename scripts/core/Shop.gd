@@ -546,16 +546,21 @@ func _on_item_selected(item: Item) -> void:
 	var added = false
 	match item.category:
 		"team":
+			# Create Runner object from item name
+			var runner = Runner.from_string(item.name)
+			# Register runner in registry
+			GameManager.register_runner(runner)
+			
 			# Try to add to varsity first, then JV if varsity is full
 			var team_size = GameManager.get_team_size()
 			if team_size.varsity < 5:
-				if GameManager.add_varsity_runner(item.name):
+				if GameManager.add_varsity_runner(runner):
 					added = true
-					print("Added to varsity: ", item.name)
+					print("Added to varsity: ", runner.display_name)
 			elif team_size.jv < 2:
-				if GameManager.add_jv_runner(item.name):
+				if GameManager.add_jv_runner(runner):
 					added = true
-					print("Added to JV: ", item.name)
+					print("Added to JV: ", runner.display_name)
 			else:
 				print("Team is full! Cannot add more runners.")
 				# Refund gold if we couldn't add
@@ -626,9 +631,9 @@ func _get_team_stats_summary() -> Dictionary:
 	var total_stamina = 0
 	var total_power = 0
 	
-	for runner_string in GameManager.varsity_team:
+	for runner in GameManager.varsity_team:
 		# Use get_item_effect to see what race calculations actually use
-		var effect = GameManager.get_item_effect(runner_string, "team")
+		var effect = GameManager.get_item_effect(runner, "team")
 		total_speed += effect.speed
 		total_endurance += effect.endurance
 		total_stamina += effect.stamina
