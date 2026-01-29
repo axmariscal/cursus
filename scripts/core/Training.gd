@@ -7,13 +7,15 @@ extends Control
 # Shop items give team-wide bonuses (e.g., +10 speed to all 5 runners = +50 total)
 # Training affects individual runners, so needs higher per-runner gains to compete
 const WORKOUT_TYPES = {
-	"speed": {"name": "Speed Training", "cost": 1, "base_gain": 5, "description": "Focus on speed"},
-	"endurance": {"name": "Endurance Training", "cost": 1, "base_gain": 5, "description": "Focus on endurance"},
-	"stamina": {"name": "Stamina Training", "cost": 1, "base_gain": 5, "description": "Focus on stamina"},
-	"power": {"name": "Power Training", "cost": 1, "base_gain": 5, "description": "Focus on power"},
-	"balanced": {"name": "Balanced Training", "cost": 1, "base_gain": 3, "description": "Small gains to all stats"},
-	"recovery": {"name": "Recovery Session", "cost": 1, "base_gain": 0, "description": "Reduces injury meter"},
-	"intensive": {"name": "Intensive Training", "cost": 2, "base_gain": 8, "description": "High gains, high injury risk"}
+	"speed": {"name": "Speed Training", "cost": 1, "base_gain": 5, "description": "Focus on speed", "cost_type": "tp"},
+	"endurance": {"name": "Endurance Training", "cost": 1, "base_gain": 5, "description": "Focus on endurance", "cost_type": "tp"},
+	"stamina": {"name": "Stamina Training", "cost": 1, "base_gain": 5, "description": "Focus on stamina", "cost_type": "tp"},
+	"power": {"name": "Power Training", "cost": 1, "base_gain": 5, "description": "Focus on power", "cost_type": "tp"},
+	"balanced": {"name": "Balanced Training", "cost": 1, "base_gain": 3, "description": "Small gains to all stats", "cost_type": "tp"},
+	"recovery": {"name": "Recovery Session", "cost": 1, "base_gain": 0, "description": "Reduces injury meter (1 TP)", "cost_type": "tp"},
+	"recovery_gold": {"name": "Medical Treatment", "cost": 25, "base_gain": 0, "description": "Reduces injury meter (25 Gold)", "cost_type": "gold"},
+	"recovery_premium": {"name": "Premium Recovery", "cost": 2, "base_gain": 0, "description": "Major recovery (2 TP)", "cost_type": "tp"},
+	"intensive": {"name": "Intensive Training", "cost": 2, "base_gain": 8, "description": "High gains, high injury risk", "cost_type": "tp"}
 }
 
 const MAX_TRAINING_PER_PHASE = 3  # Each runner can train up to 3 times per phase (increased from 2)
@@ -280,18 +282,32 @@ func _on_workout_selected(workout_type: String) -> void:
 		_show_feedback("⚠️ Please select a runner first!", false)
 		return
 	
-	# Check if runner can train more (use unique_id as key)
-	var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
-	if sessions_used >= MAX_TRAINING_PER_PHASE:
-		_show_feedback("⚠️ This runner has reached the training limit (%d sessions)!" % MAX_TRAINING_PER_PHASE, false)
+	var workout_data = WORKOUT_TYPES.get(workout_type, {})
+	if workout_data.is_empty():
+		_show_feedback("⚠️ Unknown workout type!", false)
 		return
 	
-	# Check training points
-	var workout_data = WORKOUT_TYPES[workout_type]
+	var cost_type = workout_data.get("cost_type", "tp")
 	var cost = workout_data.cost
-	if GameManager.get_training_points() < cost:
-		_show_feedback("⚠️ Not enough training points! Need %d, have %d" % [cost, GameManager.get_training_points()], false)
-		return
+	
+	# Recovery workouts don't count against training session limit
+	var is_recovery = workout_type.begins_with("recovery")
+	if not is_recovery:
+		# Check if runner can train more (use unique_id as key)
+		var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
+		if sessions_used >= MAX_TRAINING_PER_PHASE:
+			_show_feedback("⚠️ This runner has reached the training limit (%d sessions)!" % MAX_TRAINING_PER_PHASE, false)
+			return
+	
+	# Check cost based on type
+	if cost_type == "tp":
+		if GameManager.get_training_points() < cost:
+			_show_feedback("⚠️ Not enough training points! Need %d, have %d" % [cost, GameManager.get_training_points()], false)
+			return
+	elif cost_type == "gold":
+		if GameManager.get_gold() < cost:
+			_show_feedback("⚠️ Not enough gold! Need %d, have %d" % [cost, GameManager.get_gold()], false)
+			return
 	
 	# Generate a fixed seed for consistent before/after comparison
 	# This eliminates random variance so we can see the actual impact of training
@@ -359,7 +375,7 @@ func _on_workout_selected(workout_type: String) -> void:
 	# Build feedback message
 	var feedback_text = "✓ Training complete! "
 	
-	if workout_type == "recovery":
+	if workout_type.begins_with("recovery"):
 		# Recovery workout feedback
 		var recovery_amount = injury_before.meter - injury_after.meter
 		feedback_text += "Recovered %.1f%% injury. " % recovery_amount
@@ -367,6 +383,16 @@ func _on_workout_selected(workout_type: String) -> void:
 			feedback_text += "Runner is now healthy!"
 		else:
 			feedback_text += "Injury: %.1f%%" % injury_after.meter
+		
+		# Special handling for premium recovery (more recovery)
+		if workout_type == "recovery_premium":
+			# Premium recovery gives extra recovery
+			var extra_recovery = 5.0 + (randf() * 5.0)  # 5-10 extra points
+			selected_runner.recover(extra_recovery)
+			var final_injury = selected_runner.get_injury_status()
+			feedback_text += "\nPremium treatment: +%.1f%% recovery!" % extra_recovery
+			if final_injury.meter < 30.0:
+				feedback_text += " Runner is now healthy!"
 	else:
 		# Regular training feedback
 		var gain_parts: Array[String] = []
@@ -395,11 +421,16 @@ func _on_workout_selected(workout_type: String) -> void:
 	
 	_show_feedback(feedback_text, true)
 	
-	# Spend training points
-	GameManager.spend_training_points(cost)
+	# Spend cost based on type
+	if cost_type == "tp":
+		GameManager.spend_training_points(cost)
+	elif cost_type == "gold":
+		GameManager.spend_gold(cost)
 	
-	# Increment training sessions (use unique_id as key)
-	training_sessions[selected_runner.get_id()] = sessions_used + 1
+	# Increment training sessions only for non-recovery workouts (use unique_id as key)
+	if not is_recovery:
+		var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
+		training_sessions[selected_runner.get_id()] = sessions_used + 1
 	
 	# Update display
 	_update_display()
@@ -408,7 +439,7 @@ func _on_workout_selected(workout_type: String) -> void:
 	_update_workout_buttons()
 
 func _update_workout_buttons() -> void:
-	# Enable/disable workout buttons based on selected runner and available points
+	# Enable/disable workout buttons based on selected runner and available resources
 	var can_train = false
 	var sessions_used = 0
 	
@@ -422,9 +453,20 @@ func _update_workout_buttons() -> void:
 			var workout_type = button.get_meta("workout_type", "")
 			var workout_data = WORKOUT_TYPES.get(workout_type, {})
 			var cost = workout_data.get("cost", 1)
+			var cost_type = workout_data.get("cost_type", "tp")
 			
-			var can_afford = GameManager.get_training_points() >= cost
-			var should_disable = not (can_afford and can_train and selected_runner != null)
+			# Recovery workouts don't count against session limit
+			var is_recovery = workout_type.begins_with("recovery")
+			var can_use_workout = can_train or is_recovery
+			
+			# Check affordability based on cost type
+			var can_afford = false
+			if cost_type == "tp":
+				can_afford = GameManager.get_training_points() >= cost
+			elif cost_type == "gold":
+				can_afford = GameManager.get_gold() >= cost
+			
+			var should_disable = not (can_afford and can_use_workout and selected_runner != null)
 			
 			button.disabled = should_disable
 			
@@ -432,8 +474,11 @@ func _update_workout_buttons() -> void:
 			if should_disable and selected_runner != null:
 				var reason = ""
 				if not can_afford:
-					reason = " (Need %d TP)" % cost
-				elif not can_train:
+					if cost_type == "tp":
+						reason = " (Need %d TP)" % cost
+					elif cost_type == "gold":
+						reason = " (Need %d Gold)" % cost
+				elif not can_use_workout and not is_recovery:
 					reason = " (Max sessions)"
 				# Don't change text if no runner selected (that's handled by empty selection)
 

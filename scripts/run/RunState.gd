@@ -154,6 +154,42 @@ func get_result_message(race_result: Dictionary) -> String:
 					result_message += "  %d%s place\n" % [pos, suffix]
 	result_message += "\n"
 	
+	# Show injury status after race
+	var injury_statuses = race_result.get("injury_statuses", {})
+	if injury_statuses.size() > 0:
+		var injured_runners: Array[Dictionary] = []
+		for runner_id in injury_statuses.keys():
+			var injury_data = injury_statuses[runner_id]
+			if injury_data.is_injured:
+				var runner = GameManager.get_runner_by_id(runner_id)
+				if runner != null:
+					injured_runners.append({
+						"name": runner.name,
+						"meter": injury_data.meter,
+						"severity": injury_data.severity
+					})
+		
+		if injured_runners.size() > 0:
+			result_message += "⚠️ Injuries:\n"
+			for injured in injured_runners:
+				var severity_icon = ""
+				match injured.severity:
+					"minor":
+						severity_icon = "⚠️"
+					"moderate":
+						severity_icon = "🔴"
+					"severe":
+						severity_icon = "🚨"
+					_:
+						severity_icon = "⚠️"
+				result_message += "  %s %s: %.1f%% (%s)\n" % [
+					severity_icon,
+					injured.name,
+					injured.meter,
+					injured.severity.capitalize()
+				]
+			result_message += "\n"
+	
 	# Ante progression
 	var completed_ante = race_result.get("completed_ante", GameManager.current_ante)
 	if race_result.won:

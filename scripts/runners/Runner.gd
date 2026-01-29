@@ -250,6 +250,12 @@ func apply_training(workout_type: String, base_gain: int = 2) -> Dictionary:
 			# Recovery workout reduces injury, no stat gains
 			# This is handled separately in Training.gd, but we still track it here
 			injury_risk = -5.0 - (randf() * 5.0)  # Negative = recovery (5-10 points recovered)
+		"recovery_gold":
+			# Medical treatment - better recovery than basic recovery
+			injury_risk = -8.0 - (randf() * 7.0)  # Negative = recovery (8-15 points recovered)
+		"recovery_premium":
+			# Premium recovery - best recovery option
+			injury_risk = -12.0 - (randf() * 8.0)  # Negative = recovery (12-20 points recovered)
 		"intensive":
 			# Intensive training gives higher gains but much higher injury risk
 			gains.speed = int(base_gain * growth_potential.speed)
@@ -340,6 +346,22 @@ func recover(amount: float) -> void:
 		injury_debuffs.clear()
 	else:
 		_update_injury_debuffs()
+
+# Apply race fatigue/injury risk after completing a race
+# race_intensity: 0.0-1.0, where 1.0 is maximum intensity (championship race)
+func apply_race_fatigue(race_intensity: float = 0.5) -> void:
+	# Base injury risk from racing (scaled by intensity)
+	# More intense races (championships, qualifiers) have higher injury risk
+	var base_risk = 2.0 + (race_intensity * 3.0)  # 2-5 points base risk
+	
+	# Add randomness (races are unpredictable)
+	var random_factor = randf() * 2.0  # 0-2 points
+	
+	# Total injury risk
+	var total_risk = base_risk + random_factor
+	
+	# Apply injury risk
+	_increase_injury_meter(total_risk)
 
 # Get injury status for display
 func get_injury_status() -> Dictionary:

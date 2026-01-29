@@ -37,6 +37,14 @@ class Item:
 @onready var continue_button: Button = %ContinueButton
 @onready var purchase_feedback_label: Label = %PurchaseFeedbackLabel
 
+# Training section UI (will be created dynamically)
+var training_section: VBoxContainer = null
+var training_points_label: Label = null
+var training_runners_container: VBoxContainer = null
+var training_workouts_container: HFlowContainer = null
+var selected_training_runner: Runner = null
+var training_feedback_label: Label = null
+
 var available_items: Array[Item] = []
 
 # Simple item pools for each category
@@ -85,6 +93,7 @@ func _ready() -> void:
 	# Wait for frame to ensure UI is fully ready before displaying items
 	await get_tree().process_frame
 	_display_available_items()
+	_setup_training_section()
 	
 	# Hide purchase feedback initially
 	purchase_feedback_label.visible = false
@@ -616,6 +625,9 @@ func _on_item_selected(item: Item) -> void:
 	_update_display()
 	# Redisplay items (this will update button states based on new gold amount)
 	_display_available_items()
+	# Update training section if it exists
+	if training_section != null:
+		_update_training_display()
 	
 	# Get win probability AFTER purchase for debugging
 	var win_prob_after = RaceLogic.calculate_win_probability_monte_carlo()
@@ -756,6 +768,329 @@ func _show_purchase_feedback(message: String) -> void:
 	await tween.finished
 	purchase_feedback_label.visible = false
 	purchase_feedback_label.modulate.a = 1.0
+
+func _setup_training_section() -> void:
+	# Create Training section after Equipment section
+	var main_container = equipment_container.get_parent().get_parent()  # VBoxContainer
+	var equipment_section = equipment_container.get_parent()  # EquipmentSection
+	
+	# Create Training section
+	training_section = VBoxContainer.new()
+	training_section.name = "TrainingSection"
+	
+	# Training header
+	var training_header = Label.new()
+	training_header.text = "--- TRAINING ---"
+	training_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_section.add_child(training_header)
+	
+	# Training points label
+	training_points_label = Label.new()
+	training_points_label.name = "TrainingPointsLabel"
+	training_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_points_label.add_theme_font_size_override("font_size", 24)
+	training_section.add_child(training_points_label)
+	
+	# Selected runner label
+	var selected_runner_label = Label.new()
+	selected_runner_label.name = "SelectedRunnerLabel"
+	selected_runner_label.text = "Selected: None"
+	selected_runner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_section.add_child(selected_runner_label)
+	
+	# Runners container
+	var runners_label = Label.new()
+	runners_label.text = "Select Runner:"
+	runners_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_section.add_child(runners_label)
+	
+	training_runners_container = VBoxContainer.new()
+	training_runners_container.name = "TrainingRunnersContainer"
+	training_section.add_child(training_runners_container)
+	
+	# Workouts container
+	var workouts_label = Label.new()
+	workouts_label.text = "Select Workout:"
+	workouts_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_section.add_child(workouts_label)
+	
+	training_workouts_container = HFlowContainer.new()
+	training_workouts_container.name = "TrainingWorkoutsContainer"
+	training_section.add_child(training_workouts_container)
+	
+	# Training feedback label
+	training_feedback_label = Label.new()
+	training_feedback_label.name = "TrainingFeedbackLabel"
+	training_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_feedback_label.visible = false
+	training_section.add_child(training_feedback_label)
+	
+	# Insert Training section after Equipment section
+	var equipment_index = main_container.get_children().find(equipment_section)
+	if equipment_index >= 0:
+		main_container.add_child(training_section)
+		main_container.move_child(training_section, equipment_index + 1)
+	
+	# Update training display
+	_update_training_display()
+
+func _update_training_display() -> void:
+	if training_points_label == null:
+		return
+	
+	var points = GameManager.get_training_points()
+	training_points_label.text = "🏋️ Training Points: %d" % points
+	training_points_label.add_theme_color_override("font_color", Color(0.3, 0.7, 0.9))
+	
+	# Display runners
+	_display_training_runners()
+	
+	# Display workouts
+	_display_training_workouts()
+
+func _display_training_runners() -> void:
+	if training_runners_container == null:
+		return
+	
+	# Clear existing
+	for child in training_runners_container.get_children():
+		child.queue_free()
+	
+	# Display varsity runners
+	var varsity_header = Label.new()
+	varsity_header.text = "VARSITY:"
+	varsity_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	training_runners_container.add_child(varsity_header)
+	
+	for runner in GameManager.varsity_team:
+		_create_training_runner_button(runner, true)
+	
+	# Display JV runners if any
+	if GameManager.jv_team.size() > 0:
+		var jv_header = Label.new()
+		jv_header.text = "JV:"
+		jv_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		jv_header.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		training_runners_container.add_child(jv_header)
+		
+		for runner in GameManager.jv_team:
+			_create_training_runner_button(runner, false)
+
+func _create_training_runner_button(runner: Runner, is_varsity: bool) -> void:
+	var button = Button.new()
+	var stats = runner.get_display_stats()
+	var injury_status = runner.get_injury_status()
+	
+	var button_text = runner.name
+	if is_varsity:
+		button_text = "⭐ " + button_text
+	
+	button_text += "\nSpd:%d End:%d Sta:%d Pow:%d" % [
+		stats.current.speed, stats.current.endurance,
+		stats.current.stamina, stats.current.power
+	]
+	
+	if injury_status.is_injured:
+		button_text += "\n⚠️ Injured (%.0f%%)" % injury_status.meter
+	else:
+		button_text += "\n✓ Healthy"
+	
+	button.text = button_text
+	button.custom_minimum_size = Vector2(180, 100)
+	
+	# Style button
+	var style_normal = StyleBoxFlat.new()
+	style_normal.corner_radius_top_left = 5
+	style_normal.corner_radius_top_right = 5
+	style_normal.corner_radius_bottom_right = 5
+	style_normal.corner_radius_bottom_left = 5
+	
+	var base_color = Color(0.3, 0.5, 0.8) if is_varsity else Color(0.5, 0.5, 0.5)
+	if selected_training_runner != null and selected_training_runner.get_id() == runner.get_id():
+		base_color = Color(0.5, 0.8, 0.5)  # Highlight selected
+	
+	style_normal.bg_color = Color(base_color.r, base_color.g, base_color.b, 0.7)
+	button.add_theme_stylebox_override("normal", style_normal)
+	
+	button.pressed.connect(_on_training_runner_selected.bind(runner))
+	training_runners_container.add_child(button)
+
+func _display_training_workouts() -> void:
+	if training_workouts_container == null:
+		return
+	
+	# Clear existing
+	for child in training_workouts_container.get_children():
+		child.queue_free()
+	
+	# Use same workout types as Training.gd
+	var workout_types = {
+		"speed": {"name": "Speed", "cost": 1, "description": "+Speed", "cost_type": "tp"},
+		"endurance": {"name": "Endurance", "cost": 1, "description": "+Endurance", "cost_type": "tp"},
+		"stamina": {"name": "Stamina", "cost": 1, "description": "+Stamina", "cost_type": "tp"},
+		"power": {"name": "Power", "cost": 1, "description": "+Power", "cost_type": "tp"},
+		"balanced": {"name": "Balanced", "cost": 1, "description": "+All", "cost_type": "tp"},
+		"recovery": {"name": "Recovery", "cost": 1, "description": "Heal (1 TP)", "cost_type": "tp"},
+		"recovery_gold": {"name": "Medical", "cost": 25, "description": "Heal (25 Gold)", "cost_type": "gold"},
+		"recovery_premium": {"name": "Premium", "cost": 2, "description": "Major Heal (2 TP)", "cost_type": "tp"},
+		"intensive": {"name": "Intensive", "cost": 2, "description": "High gain", "cost_type": "tp"}
+	}
+	
+	for workout_type in workout_types.keys():
+		var workout_data = workout_types[workout_type]
+		_create_training_workout_button(workout_type, workout_data)
+
+func _create_training_workout_button(workout_type: String, workout_data: Dictionary) -> void:
+	var button = Button.new()
+	var cost_type = workout_data.get("cost_type", "tp")
+	var cost_text = ""
+	if cost_type == "tp":
+		cost_text = "%d TP" % workout_data.cost
+	elif cost_type == "gold":
+		cost_text = "%d Gold" % workout_data.cost
+	
+	button.text = workout_data.name + "\nCost: %s\n%s" % [cost_text, workout_data.description]
+	button.custom_minimum_size = Vector2(120, 80)
+	button.set_meta("workout_type", workout_type)
+	
+	# Style button
+	var style_normal = StyleBoxFlat.new()
+	style_normal.corner_radius_top_left = 5
+	style_normal.corner_radius_top_right = 5
+	style_normal.corner_radius_bottom_right = 5
+	style_normal.corner_radius_bottom_left = 5
+	
+	var base_color = Color(0.4, 0.7, 0.4)
+	match workout_type:
+		"speed":
+			base_color = Color(0.9, 0.3, 0.3)
+		"endurance":
+			base_color = Color(0.3, 0.6, 0.9)
+		"stamina":
+			base_color = Color(0.9, 0.6, 0.3)
+		"power":
+			base_color = Color(0.7, 0.3, 0.9)
+		"balanced":
+			base_color = Color(0.5, 0.5, 0.5)
+		"recovery":
+			base_color = Color(0.3, 0.8, 0.5)
+		"recovery_gold":
+			base_color = Color(0.5, 0.8, 0.6)  # Slightly different green
+		"recovery_premium":
+			base_color = Color(0.2, 0.9, 0.7)  # Bright green
+		"intensive":
+			base_color = Color(0.9, 0.5, 0.1)
+	
+	style_normal.bg_color = Color(base_color.r, base_color.g, base_color.b, 0.7)
+	button.add_theme_stylebox_override("normal", style_normal)
+	
+	# Disable if no runner selected or can't afford
+	var can_afford = false
+	if cost_type == "tp":
+		can_afford = GameManager.get_training_points() >= workout_data.cost
+	elif cost_type == "gold":
+		can_afford = GameManager.get_gold() >= workout_data.cost
+	
+	button.disabled = selected_training_runner == null or not can_afford
+	
+	button.pressed.connect(_on_training_workout_selected.bind(workout_type))
+	training_workouts_container.add_child(button)
+
+func _on_training_runner_selected(runner: Runner) -> void:
+	selected_training_runner = runner
+	_update_training_display()
+	
+	# Update selected runner label
+	if training_section != null:
+		var selected_label = training_section.get_node_or_null("SelectedRunnerLabel")
+		if selected_label != null:
+			selected_label.text = "Selected: %s" % runner.name
+
+func _on_training_workout_selected(workout_type: String) -> void:
+	if selected_training_runner == null:
+		_show_training_feedback("⚠️ Please select a runner first!", false)
+		return
+	
+	# Workout types matching Training.gd
+	var workout_types = {
+		"speed": {"name": "Speed Training", "cost": 1, "base_gain": 5},
+		"endurance": {"name": "Endurance Training", "cost": 1, "base_gain": 5},
+		"stamina": {"name": "Stamina Training", "cost": 1, "base_gain": 5},
+		"power": {"name": "Power Training", "cost": 1, "base_gain": 5},
+		"balanced": {"name": "Balanced Training", "cost": 1, "base_gain": 3},
+		"recovery": {"name": "Recovery Session", "cost": 1, "base_gain": 0},
+		"intensive": {"name": "Intensive Training", "cost": 2, "base_gain": 8}
+	}
+	
+	var workout_data = workout_types.get(workout_type, {})
+	if workout_data.is_empty():
+		_show_training_feedback("⚠️ Unknown workout type!", false)
+		return
+	
+	var cost_type = workout_data.get("cost_type", "tp")
+	var cost = workout_data.get("cost", 1)
+	
+	# Check affordability based on cost type
+	if cost_type == "tp":
+		if GameManager.get_training_points() < cost:
+			_show_training_feedback("⚠️ Not enough training points! Need %d" % cost, false)
+			return
+	elif cost_type == "gold":
+		if GameManager.get_gold() < cost:
+			_show_training_feedback("⚠️ Not enough gold! Need %d" % cost, false)
+			return
+	
+	# Apply training
+	var base_gain = workout_data.get("base_gain", 2)
+	var gains = selected_training_runner.apply_training(workout_type, base_gain)
+	
+	# Spend cost based on type
+	if cost_type == "tp":
+		GameManager.spend_training_points(cost)
+	elif cost_type == "gold":
+		GameManager.spend_gold(cost)
+	
+	# Show feedback
+	var feedback_text = "✓ Training complete! "
+	if workout_type == "recovery":
+		var injury_status = selected_training_runner.get_injury_status()
+		feedback_text += "Recovered injury. Current: %.1f%%" % injury_status.meter
+	else:
+		var gain_parts: Array[String] = []
+		if gains.speed > 0:
+			gain_parts.append("+%d Speed" % gains.speed)
+		if gains.endurance > 0:
+			gain_parts.append("+%d Endurance" % gains.endurance)
+		if gains.stamina > 0:
+			gain_parts.append("+%d Stamina" % gains.stamina)
+		if gains.power > 0:
+			gain_parts.append("+%d Power" % gains.power)
+		
+		if not gain_parts.is_empty():
+			feedback_text += "Gains: " + ", ".join(gain_parts)
+	
+	_show_training_feedback(feedback_text, true)
+	
+	# Update displays
+	_update_display()
+	_update_training_display()
+
+func _show_training_feedback(message: String, is_success: bool) -> void:
+	if training_feedback_label == null:
+		return
+	
+	training_feedback_label.text = message
+	training_feedback_label.visible = true
+	
+	if is_success:
+		training_feedback_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	else:
+		training_feedback_label.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
+	
+	# Auto-hide after 2 seconds
+	await get_tree().create_timer(2.0).timeout
+	if training_feedback_label != null:
+		training_feedback_label.visible = false
 
 func _on_continue_pressed() -> void:
 	# Return to Run scene (draft is handled before shop in Run.gd)

@@ -785,6 +785,31 @@ func get_race_type_name(race_type: Variant = null) -> String:
 	else:
 		return _get_race_type_name(race_type as RaceType)
 
+# Calculate race intensity (0.0-1.0) for injury risk calculation
+# Higher intensity = more injury risk
+func _calculate_race_intensity() -> float:
+	var base_intensity = 0.3  # Base intensity for dual/tri meets
+	
+	# Scale by race type
+	match current_race_type:
+		RaceType.DUAL_MEET:
+			base_intensity = 0.2  # Low intensity
+		RaceType.TRI_MEET:
+			base_intensity = 0.3  # Low-medium intensity
+		RaceType.INVITATIONAL:
+			base_intensity = 0.5  # Medium intensity
+		RaceType.QUALIFIERS:
+			base_intensity = 0.7  # High intensity
+		RaceType.CHAMPIONSHIP:
+			base_intensity = 0.9  # Very high intensity
+	
+	# Scale with ante (later races are more intense)
+	var ante_scaling = 1.0 + ((current_ante - 1) * 0.05)  # 5% increase per ante
+	base_intensity *= ante_scaling
+	
+	# Cap at 1.0
+	return min(base_intensity, 1.0)
+
 # ============================================
 # CURRENCY SYSTEM
 # ============================================
@@ -1523,6 +1548,23 @@ func simulate_race() -> Dictionary:
 		RaceType.CHAMPIONSHIP:
 			won = player_placement <= 3  # Top 3
 	
+	# Apply post-race injury risk to all varsity runners
+	# Calculate race intensity based on race type and ante
+	var race_intensity = _calculate_race_intensity()
+	var injury_statuses: Dictionary = {}
+	
+	for runner in varsity_team:
+		# Apply race fatigue/injury risk
+		runner.apply_race_fatigue(race_intensity)
+		
+		# Store injury status for race results
+		var injury_status = runner.get_injury_status()
+		injury_statuses[runner.get_id()] = {
+			"meter": injury_status.meter,
+			"is_injured": injury_status.is_injured,
+			"severity": injury_status.severity
+		}
+	
 	# Restore global RNG state
 	randomize()
 	
@@ -1535,7 +1577,8 @@ func simulate_race() -> Dictionary:
 		"race_type": current_race_type,
 		"race_type_name": get_race_type_name(),
 		"total_teams": team_scores.size(),
-		"all_runners": all_runners  # For detailed display
+		"all_runners": all_runners,  # For detailed display
+		"injury_statuses": injury_statuses  # Post-race injury status for all runners
 	}
 
 # ============================================
