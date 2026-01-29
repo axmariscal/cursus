@@ -414,3 +414,75 @@ func get_display_string() -> String:
 		current_stats.power,
 		injury_meter
 	]
+
+# ============================================
+# SERIALIZATION
+# ============================================
+
+# Convert Runner to Dictionary for JSON serialization
+func to_dict() -> Dictionary:
+	return {
+		"name": name,
+		"display_name": display_name,
+		"draft_tier": draft_tier,
+		"base_stats": base_stats.duplicate(),
+		"current_stats": current_stats.duplicate(),
+		"growth_potential": growth_potential.duplicate(),
+		"injury_meter": injury_meter,
+		"injury_debuffs": injury_debuffs.duplicate(),
+		"is_injured": is_injured,
+		"training_history": training_history.duplicate(),
+		"total_training_sessions": total_training_sessions,
+		"is_varsity": is_varsity,
+		"team_index": team_index,
+		"is_outstanding_recruit": is_outstanding_recruit,
+		"unique_id": unique_id
+	}
+
+# Create Runner from Dictionary (static factory method)
+static func from_dict(data: Dictionary) -> Runner:
+	# Create runner with empty name to avoid _load_stats_from_name
+	# We'll load stats from the dictionary instead
+	var runner = Runner.new("", "")
+	
+	# Override the unique_id that was assigned in _init
+	# We need to restore the saved unique_id
+	var saved_id = data.get("unique_id", -1)
+	if saved_id >= 0:
+		# Temporarily decrement next_id since _init incremented it
+		Runner.next_id -= 1
+		runner.unique_id = saved_id
+		# Update next_id to ensure no conflicts with future runners
+		if saved_id >= Runner.next_id:
+			Runner.next_id = saved_id + 1
+	
+	# Set basic properties
+	runner.name = data.get("name", "")
+	runner.display_name = data.get("display_name", "")
+	runner.draft_tier = data.get("draft_tier", "")
+	
+	# Set stats
+	if data.has("base_stats"):
+		runner.base_stats = data.base_stats.duplicate()
+	if data.has("current_stats"):
+		runner.current_stats = data.current_stats.duplicate()
+	if data.has("growth_potential"):
+		runner.growth_potential = data.growth_potential.duplicate()
+	
+	# Set injury data
+	runner.injury_meter = data.get("injury_meter", 0.0)
+	if data.has("injury_debuffs"):
+		runner.injury_debuffs = data.injury_debuffs.duplicate()
+	runner.is_injured = data.get("is_injured", false)
+	
+	# Set training history
+	if data.has("training_history"):
+		runner.training_history = data.training_history.duplicate()
+	runner.total_training_sessions = data.get("total_training_sessions", 0)
+	
+	# Set team assignment
+	runner.is_varsity = data.get("is_varsity", false)
+	runner.team_index = data.get("team_index", -1)
+	runner.is_outstanding_recruit = data.get("is_outstanding_recruit", false)
+	
+	return runner

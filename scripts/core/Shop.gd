@@ -555,21 +555,44 @@ func _on_item_selected(item: Item) -> void:
 	var added = false
 	match item.category:
 		"team":
-			# Create Runner object from item name
+			# Extract runner name from "Runner: Name" format
+			var runner_name = item.name.split(":")[1].strip_edges() if ":" in item.name else item.name
+			
+			# Check if we already have this runner type in registry
+			# (This prevents losing training history if you buy same runner twice)
+			var existing_runner = null
+			for runner in GameManager.varsity_team:
+				if runner.name == runner_name:
+					existing_runner = runner
+					break
+			if existing_runner == null:
+				for runner in GameManager.jv_team:
+					if runner.name == runner_name:
+						existing_runner = runner
+						break
+			
+			# If runner already exists on team, don't allow duplicate purchase
+			if existing_runner != null:
+				print("Runner %s is already on your team! Cannot purchase duplicate." % existing_runner.display_name)
+				# Refund gold
+				GameManager.earn_gold(item.price)
+				return
+			
+			# Create new runner (no existing runner found)
 			var runner = Runner.from_string(item.name)
-			# Register runner in registry
 			GameManager.register_runner(runner)
+			print("Created new runner: %s" % runner.display_name)
 			
 			# Try to add to varsity first, then JV if varsity is full
 			var team_size = GameManager.get_team_size()
 			if team_size.varsity < 5:
 				if GameManager.add_varsity_runner(runner):
 					added = true
-					print("Added to varsity: ", runner.display_name)
+					print("Added to varsity: %s" % runner.display_name)
 			elif team_size.jv < 2:
 				if GameManager.add_jv_runner(runner):
 					added = true
-					print("Added to JV: ", runner.display_name)
+					print("Added to JV: %s" % runner.display_name)
 			else:
 				print("Team is full! Cannot add more runners.")
 				# Refund gold if we couldn't add

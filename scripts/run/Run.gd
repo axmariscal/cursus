@@ -52,6 +52,7 @@ var card_interaction: CardInteraction
 @onready var continue_to_shop_button: Button = %ContinueToShopButton
 @onready var go_to_training_button: Button = %GoToTrainingButton
 @onready var view_team_button: Button = %ViewTeamButton
+@onready var save_run_button: Button = %SaveRunButton
 @onready var back_button: Button = %BackButton
 
 # Result panel
@@ -106,6 +107,7 @@ func _ready() -> void:
 	continue_to_shop_button.pressed.connect(_on_continue_to_shop_pressed)
 	go_to_training_button.pressed.connect(_on_go_to_training_pressed)
 	view_team_button.pressed.connect(_on_view_team_pressed)
+	save_run_button.pressed.connect(_on_save_run_pressed)
 	result_close_button.pressed.connect(_on_result_close_pressed)
 	
 	# Connect card interaction signals
@@ -133,6 +135,7 @@ func _ready() -> void:
 	run_styling.style_shop_button(continue_to_shop_button, false)  # Start as gray/inactive
 	run_styling.style_action_button(go_to_training_button, Color(0.3, 0.7, 0.9))  # Blue (inactive initially)
 	run_styling.style_action_button(view_team_button, Color(0.2, 0.6, 0.9))  # Blue
+	run_styling.style_action_button(save_run_button, Color(0.5, 0.7, 0.9))  # Light blue
 	run_styling.style_action_button(back_button, Color(0.8, 0.3, 0.3))  # Red
 	run_styling.style_action_button(result_close_button, Color(0.6, 0.6, 0.6))  # Grey
 	
@@ -473,6 +476,14 @@ func _on_view_team_pressed() -> void:
 	# Deselect card when navigating to team management
 	card_interaction.deselect_team_card()
 	get_tree().change_scene_to_file("res://scenes/core/TeamManagement.tscn")
+
+func _on_save_run_pressed() -> void:
+	# Show save slot selection dialog
+	# For now, save to slot 1 (can be enhanced later with slot selection UI)
+	if GameManager.save_run(1):
+		run_ui.show_purchase_feedback("✓ Run saved to slot 1!", true)
+	else:
+		run_ui.show_purchase_feedback("❌ Failed to save run", false)
 
 func _on_back_button_pressed() -> void:
 	if not back_button_waiting_confirm:

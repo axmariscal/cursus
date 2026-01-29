@@ -293,8 +293,12 @@ const RUNNER_GROWTH_POTENTIAL = {
 	}
 }
 
-# Save file path for unlocks
+# Save file paths
 const UNLOCKS_SAVE_PATH = "user://unlocks.save"
+const RUN_SAVE_PATH_PREFIX = "user://run_save_"
+const RUN_SAVE_PATH_SUFFIX = ".json"
+const MAX_SAVE_SLOTS = 3
+const SAVE_VERSION = 1
 
 func _ready() -> void:
 	# Load unlocked divisions on game start
@@ -447,12 +451,358 @@ func _string_to_division(div_string: String) -> Division:
 		_:
 			return -1
 
+func _race_type_to_string(race_type: RaceType) -> String:
+	match race_type:
+		RaceType.DUAL_MEET:
+			return "dual_meet"
+		RaceType.TRI_MEET:
+			return "tri_meet"
+		RaceType.INVITATIONAL:
+			return "invitational"
+		RaceType.QUALIFIERS:
+			return "qualifiers"
+		RaceType.CHAMPIONSHIP:
+			return "championship"
+		_:
+			return "dual_meet"
+
+func _string_to_race_type(race_type_string: String) -> RaceType:
+	match race_type_string:
+		"dual_meet":
+			return RaceType.DUAL_MEET
+		"tri_meet":
+			return RaceType.TRI_MEET
+		"invitational":
+			return RaceType.INVITATIONAL
+		"qualifiers":
+			return RaceType.QUALIFIERS
+		"championship":
+			return RaceType.CHAMPIONSHIP
+		_:
+			return RaceType.DUAL_MEET
+
 func show_unlock_notification(division: Division) -> void:
 	var config = get_division_config(division)
 	var division_name = config.get("name", "Unknown Division")
 	print("🎉 UNLOCKED: %s" % division_name)
 	# TODO: Show in-game notification/popup
 	# For now, just print to console
+
+# ============================================
+# RUN SAVE/LOAD SYSTEM
+# ============================================
+
+# Get save file path for a specific slot
+func get_save_path(slot: int) -> String:
+	return RUN_SAVE_PATH_PREFIX + str(slot) + RUN_SAVE_PATH_SUFFIX
+
+# Save current run to a specific slot
+func save_run(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		print("Error: Invalid save slot: ", slot)
+		return false
+	
+	if not run_active:
+		print("Error: No active run to save")
+		return false
+	
+	# Save teams as arrays of unique_ids (references only)
+	# This is more efficient and maintains single source of truth
+	var varsity_team_ids: Array = []
+	for runner in varsity_team:
+		varsity_team_ids.append(runner.unique_id)
+	
+	var jv_team_ids: Array = []
+	for runner in jv_team:
+		jv_team_ids.append(runner.unique_id)
+	
+	# Convert runner_registry to dictionaries (single source of truth)
+	var runner_registry_dicts: Dictionary = {}
+	for runner_id in runner_registry.keys():
+		var runner = runner_registry[runner_id]
+		runner_registry_dicts[str(runner_id)] = runner.to_dict()
+	
+	# Build save data
+	var save_data = {
+		"version": SAVE_VERSION,
+		"timestamp": Time.get_unix_time_from_system(),
+		"run_active": run_active,
+		"current_ante": current_ante,
+		"max_ante": max_ante,
+		"current_race_type": _race_type_to_string(current_race_type),
+		"current_division": _division_to_string(current_division),
+		"seed": seed,
+		"race_counter": race_counter,
+		"draft_completed": draft_completed,
+		"gold": gold,
+		"training_points": training_points,
+		"base_speed": base_speed,
+		"base_endurance": base_endurance,
+		"base_stamina": base_stamina,
+		"base_power": base_power,
+		"varsity_team": varsity_team_ids,  # Just IDs, not full objects
+		"jv_team": jv_team_ids,            # Just IDs, not full objects
+		"deck": deck.duplicate(),
+		"jokers": jokers.duplicate(),
+		"shop_inventory": shop_inventory.duplicate(),
+		"runner_registry": runner_registry_dicts,  # Single source of truth
+		"runner_next_id": Runner.next_id,
+		"shop_price_multiplier": shop_price_multiplier,
+		"reward_multiplier_modifier": reward_multiplier_modifier,
+		"enable_contracts": enable_contracts,
+		"enable_sponsorships": enable_sponsorships,
+		"no_consolation_gold": no_consolation_gold,
+		"opponent_base_strength_multiplier": opponent_base_strength_multiplier
+	}
+	
+	# Write to file
+	var save_path = get_save_path(slot)
+	var file = FileAccess.open(save_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(save_data)
+		file.store_string(json_string)
+		file.close()
+		print("Saved run to slot ", slot, ": ", save_path)
+		return true
+	else:
+		print("Error: Could not save run to file: ", save_path)
+		return false
+
+# Load run from a specific slot
+func load_run(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		print("Error: Invalid save slot: ", slot)
+		return false
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		print("Error: Save file does not exist: ", save_path)
+		return false
+	
+	var file = FileAccess.open(save_path, FileAccess.READ)
+	if not file:
+		print("Error: Could not open save file: ", save_path)
+		return false
+	
+	var json_string = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+	
+	if parse_result != OK:
+		print("Error: Failed to parse save file JSON")
+		return false
+	
+	var save_data = json.data
+	
+	# Validate version
+	if not save_data.has("version") or save_data.version != SAVE_VERSION:
+		print("Error: Save file version mismatch or missing version")
+		return false
+	
+	# Load basic run state
+	run_active = save_data.get("run_active", false)
+	current_ante = save_data.get("current_ante", 1)
+	max_ante = save_data.get("max_ante", 5)
+	current_race_type = _string_to_race_type(save_data.get("current_race_type", "dual_meet"))
+	current_division = _string_to_division(save_data.get("current_division", "high_school"))
+	seed = save_data.get("seed", 0)
+	race_counter = save_data.get("race_counter", 0)
+	draft_completed = save_data.get("draft_completed", false)
+	gold = save_data.get("gold", 100)
+	training_points = save_data.get("training_points", 0)
+	base_speed = save_data.get("base_speed", 10)
+	base_endurance = save_data.get("base_endurance", 10)
+	base_stamina = save_data.get("base_stamina", 10)
+	base_power = save_data.get("base_power", 10)
+	
+	print("Loading run state - run_active: ", run_active, ", ante: ", current_ante, ", division: ", current_division)
+	
+	# Restore division config
+	division_config = DIVISION_DATA[current_division]
+	
+	# Restore special rules
+	shop_price_multiplier = save_data.get("shop_price_multiplier", 1.0)
+	reward_multiplier_modifier = save_data.get("reward_multiplier_modifier", 1.0)
+	enable_contracts = save_data.get("enable_contracts", false)
+	enable_sponsorships = save_data.get("enable_sponsorships", false)
+	no_consolation_gold = save_data.get("no_consolation_gold", false)
+	opponent_base_strength_multiplier = save_data.get("opponent_base_strength_multiplier", 1.0)
+	
+	# Clear existing teams and collections
+	varsity_team.clear()
+	jv_team.clear()
+	deck.clear()
+	jokers.clear()
+	shop_inventory.clear()
+	runner_objects.clear()
+	runner_registry.clear()
+	
+	# Restore Runner.next_id FIRST (before loading runners)
+	# This ensures Runner.from_dict() can properly track IDs
+	if save_data.has("runner_next_id"):
+		Runner.next_id = save_data.runner_next_id
+	
+	# Restore runner_registry first (single source of truth)
+	# The registry contains all runners, and teams reference them by unique_id
+	if save_data.has("runner_registry"):
+		for runner_id_str in save_data.runner_registry.keys():
+			var runner_dict = save_data.runner_registry[runner_id_str]
+			var runner = Runner.from_dict(runner_dict)
+			var runner_id = int(runner_id_str)  # Ensure integer type
+			runner_registry[runner_id] = runner
+			# Also add to runner_objects for backward compatibility
+			runner_objects[runner.display_name] = runner
+		
+		print("Restored runner_registry with ", runner_registry.size(), " runners")
+		print("Registry IDs: ", runner_registry.keys())
+	
+	# Handle backward compatibility: detect old save format (teams contain dictionaries)
+	var is_old_format = false
+	if save_data.has("varsity_team") and save_data.varsity_team.size() > 0:
+		if save_data.varsity_team[0] is Dictionary:
+			is_old_format = true
+			print("Detected old save format - migrating to reference-based system...")
+			# Migrate old format: extract IDs from dictionaries
+			var varsity_ids = []
+			for runner_dict in save_data.varsity_team:
+				var runner_id = runner_dict.get("unique_id", -1)
+				if runner_id >= 0:
+					varsity_ids.append(int(runner_id))  # Ensure integer
+			save_data.varsity_team = varsity_ids
+			
+			# Same for JV team
+			if save_data.has("jv_team") and save_data.jv_team.size() > 0:
+				if save_data.jv_team[0] is Dictionary:
+					var jv_ids = []
+					for runner_dict in save_data.jv_team:
+						var runner_id = runner_dict.get("unique_id", -1)
+						if runner_id >= 0:
+							jv_ids.append(int(runner_id))  # Ensure integer
+					save_data.jv_team = jv_ids
+	
+	# Restore varsity team by looking up runners in registry
+	# Convert IDs to int (JSON may save numbers as floats)
+	if save_data.has("varsity_team"):
+		for runner_id_raw in save_data.varsity_team:
+			var runner_id = int(runner_id_raw)  # Ensure integer type
+			if runner_registry.has(runner_id):
+				var runner = runner_registry[runner_id]
+				runner.is_varsity = true
+				runner.team_index = varsity_team.size()
+				varsity_team.append(runner)
+			else:
+				push_error("Runner ID %d not found in registry when restoring varsity team" % runner_id)
+				print("WARNING: Runner ID ", runner_id, " not found in registry when restoring varsity team")
+				print("  Available IDs in registry: ", runner_registry.keys())
+	
+	# Restore JV team by looking up runners in registry
+	# Convert IDs to int (JSON may save numbers as floats)
+	if save_data.has("jv_team"):
+		for runner_id_raw in save_data.jv_team:
+			var runner_id = int(runner_id_raw)  # Ensure integer type
+			if runner_registry.has(runner_id):
+				var runner = runner_registry[runner_id]
+				runner.is_varsity = false
+				runner.team_index = jv_team.size()
+				jv_team.append(runner)
+			else:
+				push_error("Runner ID %d not found in registry when restoring JV team" % runner_id)
+				print("WARNING: Runner ID ", runner_id, " not found in registry when restoring JV team")
+				print("  Available IDs in registry: ", runner_registry.keys())
+	
+	print("Loaded teams - Varsity: ", varsity_team.size(), " runners, JV: ", jv_team.size(), " runners")
+	print("Runner registry size: ", runner_registry.size())
+	
+	# Restore collections
+	if save_data.has("deck"):
+		deck = save_data.deck.duplicate()
+	if save_data.has("jokers"):
+		jokers = save_data.jokers.duplicate()
+	if save_data.has("shop_inventory"):
+		shop_inventory = save_data.shop_inventory.duplicate()
+	
+	print("Loaded run from slot ", slot, ": ", save_path)
+	print("Final state - run_active: ", run_active, ", varsity_team size: ", varsity_team.size(), ", jv_team size: ", jv_team.size())
+	return true
+
+# Get metadata for a save slot (returns null if slot is empty)
+func get_save_slot_metadata(slot: int) -> Dictionary:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return {}
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		return {}  # Empty slot
+	
+	var file = FileAccess.open(save_path, FileAccess.READ)
+	if not file:
+		return {}
+	
+	var json_string = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+	
+	if parse_result != OK:
+		return {}
+	
+	var save_data = json.data
+	
+	# Extract metadata
+	var timestamp = save_data.get("timestamp", 0)
+	var division_str = save_data.get("current_division", "high_school")
+	var division = _string_to_division(division_str)
+	var division_config_data = DIVISION_DATA.get(division, {})
+	var division_name = division_config_data.get("name", "Unknown")
+	var ante = save_data.get("current_ante", 1)
+	var gold_amount = save_data.get("gold", 0)
+	
+	# Format timestamp
+	var date_time = Time.get_datetime_dict_from_unix_time(timestamp)
+	var date_string = "%02d/%02d/%04d %02d:%02d" % [
+		date_time.month,
+		date_time.day,
+		date_time.year,
+		date_time.hour,
+		date_time.minute
+	]
+	
+	return {
+		"slot": slot,
+		"exists": true,
+		"timestamp": timestamp,
+		"date_string": date_string,
+		"division": division_name,
+		"ante": ante,
+		"gold": gold_amount,
+		"version": save_data.get("version", 0)
+	}
+
+# Check if a save slot exists
+func save_slot_exists(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return false
+	return FileAccess.file_exists(get_save_path(slot))
+
+# Delete a save slot
+func delete_save_slot(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return false
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		return false
+	
+	var error = DirAccess.remove_absolute(save_path)
+	if error == OK:
+		print("Deleted save slot ", slot)
+		return true
+	else:
+		print("Error deleting save slot ", slot, ": ", error)
+		return false
 
 func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	current_division = division
