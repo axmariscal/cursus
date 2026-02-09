@@ -61,6 +61,9 @@ func complete_race() -> Dictionary:
 	var training_points_earned = GameManager.calculate_training_points(race_result)
 	GameManager.earn_training_points(training_points_earned)
 	
+	# Permadeath: track win/loss streak (Phase 4.1)
+	GameManager.record_race_result(race_result.won)
+	
 	last_race_result = race_result
 	race_state = RaceState.COMPLETED
 	

@@ -402,6 +402,12 @@ func _on_complete_race_pressed() -> void:
 		if race_result.is_empty():
 			return
 		
+		# Permadeath: if 3 losses in a row, end run and show Run Failed screen (Phase 4.1)
+		if not race_result.get("won", false) and GameManager.is_run_failed():
+			GameManager.end_run("consecutive_losses")
+			get_tree().change_scene_to_file("res://scenes/core/RunFailedScene.tscn")
+			return
+		
 		var result_message = run_state.get_result_message(race_result)
 		
 		# Update display first to show new gold

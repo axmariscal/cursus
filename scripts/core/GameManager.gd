@@ -27,6 +27,12 @@ var race_counter = 0     # counter to vary seed between races at same ante
 var run_active := false
 var draft_completed := false  # Track if initial draft has been completed
 
+# Permadeath / failure (Phase 4.1)
+const FAILURE_CONSECUTIVE_LOSSES := 3
+var consecutive_losses := 0
+var races_won_this_run := 0
+var last_run_stats: Dictionary = {}  # Populated on end_run for Run Failed screen
+
 # Currency
 var gold := 100          # Starting gold for new runs
 var training_points := 0  # Training points earned from races
@@ -552,7 +558,9 @@ func save_run(slot: int) -> bool:
 		"enable_contracts": enable_contracts,
 		"enable_sponsorships": enable_sponsorships,
 		"no_consolation_gold": no_consolation_gold,
-		"opponent_base_strength_multiplier": opponent_base_strength_multiplier
+		"opponent_base_strength_multiplier": opponent_base_strength_multiplier,
+		"consecutive_losses": consecutive_losses,
+		"races_won_this_run": races_won_this_run
 	}
 	
 	# Write to file
@@ -629,6 +637,8 @@ func load_run(slot: int) -> bool:
 	enable_sponsorships = save_data.get("enable_sponsorships", false)
 	no_consolation_gold = save_data.get("no_consolation_gold", false)
 	opponent_base_strength_multiplier = save_data.get("opponent_base_strength_multiplier", 1.0)
+	consecutive_losses = save_data.get("consecutive_losses", 0)
+	races_won_this_run = save_data.get("races_won_this_run", 0)
 	
 	# Clear existing teams and collections
 	varsity_team.clear()
@@ -836,6 +846,11 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	
 	# Reset draft flag
 	draft_completed = false
+	
+	# Reset failure tracking
+	consecutive_losses = 0
+	races_won_this_run = 0
+	last_run_stats.clear()
 	
 	# Give starting team based on tier (will be cleared if player goes through draft)
 	_give_starting_team_for_division(division_config.get("starting_team_tier", "common"))
@@ -1086,6 +1101,37 @@ func _check_division_completion() -> void:
 		unlock_division(next_unlock)
 		var config = get_division_config(next_unlock)
 		print("Completed division! Unlocked: ", config.get("name", "Unknown"))
+
+# ============================================
+# PERMADEATH / FAILURE (Phase 4.1)
+# ============================================
+
+func record_race_result(won: bool) -> void:
+	if won:
+		races_won_this_run += 1
+		consecutive_losses = 0
+	else:
+		consecutive_losses += 1
+
+func end_run(reason: String) -> void:
+	run_active = false
+	var starting_gold_val = division_config.get("starting_gold", 100)
+	last_run_stats = {
+		"reason": reason,
+		"division_name": division_config.get("name", "Unknown"),
+		"ante_reached": current_ante,
+		"max_ante": max_ante,
+		"races_won": races_won_this_run,
+		"final_gold": gold,
+		"gold_earned": gold - starting_gold_val
+	}
+	print("Run ended: ", reason, " | Ante: ", current_ante, " | Races won: ", races_won_this_run)
+
+func get_last_run_stats() -> Dictionary:
+	return last_run_stats.duplicate()
+
+func is_run_failed() -> bool:
+	return consecutive_losses >= FAILURE_CONSECUTIVE_LOSSES
 
 # ============================================
 # RACE TYPE SYSTEM
