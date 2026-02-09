@@ -7,13 +7,15 @@ extends Control
 # Shop items give team-wide bonuses (e.g., +10 speed to all 5 runners = +50 total)
 # Training affects individual runners, so needs higher per-runner gains to compete
 const WORKOUT_TYPES = {
-	"speed": {"name": "Speed Training", "cost": 1, "base_gain": 5, "description": "Focus on speed"},
-	"endurance": {"name": "Endurance Training", "cost": 1, "base_gain": 5, "description": "Focus on endurance"},
-	"stamina": {"name": "Stamina Training", "cost": 1, "base_gain": 5, "description": "Focus on stamina"},
-	"power": {"name": "Power Training", "cost": 1, "base_gain": 5, "description": "Focus on power"},
-	"balanced": {"name": "Balanced Training", "cost": 1, "base_gain": 3, "description": "Small gains to all stats"},
-	"recovery": {"name": "Recovery Session", "cost": 1, "base_gain": 0, "description": "Reduces injury meter"},
-	"intensive": {"name": "Intensive Training", "cost": 2, "base_gain": 8, "description": "High gains, high injury risk"}
+	"speed": {"name": "Speed Training", "cost": 1, "base_gain": 5, "description": "Focus on speed", "cost_type": "tp"},
+	"endurance": {"name": "Endurance Training", "cost": 1, "base_gain": 5, "description": "Focus on endurance", "cost_type": "tp"},
+	"stamina": {"name": "Stamina Training", "cost": 1, "base_gain": 5, "description": "Focus on stamina", "cost_type": "tp"},
+	"power": {"name": "Power Training", "cost": 1, "base_gain": 5, "description": "Focus on power", "cost_type": "tp"},
+	"balanced": {"name": "Balanced Training", "cost": 1, "base_gain": 3, "description": "Small gains to all stats", "cost_type": "tp"},
+	"recovery": {"name": "Recovery Session", "cost": 1, "base_gain": 0, "description": "Reduces injury meter (1 TP)", "cost_type": "tp"},
+	"recovery_gold": {"name": "Medical Treatment", "cost": 25, "base_gain": 0, "description": "Reduces injury meter (25 Gold)", "cost_type": "gold"},
+	"recovery_premium": {"name": "Premium Recovery", "cost": 2, "base_gain": 0, "description": "Major recovery (2 TP)", "cost_type": "tp"},
+	"intensive": {"name": "Intensive Training", "cost": 2, "base_gain": 8, "description": "High gains, high injury risk", "cost_type": "tp"}
 }
 
 const MAX_TRAINING_PER_PHASE = 3  # Each runner can train up to 3 times per phase (increased from 2)
@@ -29,8 +31,8 @@ const MAX_TRAINING_PER_PHASE = 3  # Each runner can train up to 3 times per phas
 @onready var training_feedback_label: Label = %TrainingFeedbackLabel
 
 # State
-var selected_runner: String = ""  # Runner string (e.g., "Runner: Hill Specialist")
-var training_sessions: Dictionary = {}  # Track training sessions per runner: {runner_string: sessions_used}
+var selected_runner: Runner = null  # Selected Runner object
+var training_sessions: Dictionary = {}  # Track training sessions per runner: {runner.unique_id: sessions_used}
 
 func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
@@ -47,18 +49,13 @@ func _reset_training_sessions() -> void:
 	# Initialize training sessions tracking for all current runners
 	training_sessions.clear()
 	
-	# Ensure Runner objects exist for all team members (so training persists)
-	# Track varsity runners
-	for runner_string in GameManager.varsity_team:
-		training_sessions[runner_string] = 0
-		# Create Runner object if it doesn't exist
-		GameManager.get_runner_object(runner_string)
+	# Track varsity runners (they're already Runner objects)
+	for runner in GameManager.varsity_team:
+		training_sessions[runner.get_id()] = 0
 	
-	# Track JV runners
-	for runner_string in GameManager.jv_team:
-		training_sessions[runner_string] = 0
-		# Create Runner object if it doesn't exist
-		GameManager.get_runner_object(runner_string)
+	# Track JV runners (they're already Runner objects)
+	for runner in GameManager.jv_team:
+		training_sessions[runner.get_id()] = 0
 
 func _update_display() -> void:
 	ante_label.text = "Ante: %d" % GameManager.current_ante
@@ -68,31 +65,26 @@ func _update_display() -> void:
 	training_points_label.add_theme_color_override("font_color", Color(0.3, 0.7, 0.9))  # Blue color
 	
 	# Update selected runner display
-	if selected_runner == "":
+	if selected_runner == null:
 		selected_runner_label.text = "Selected: None"
 		training_history_label.text = ""
 	else:
 		_update_selected_runner_display()
 
 func _update_selected_runner_display() -> void:
-	if selected_runner == "":
+	if selected_runner == null:
 		return
 	
-	# Extract runner name for display
-	var runner_name = selected_runner
-	if ":" in selected_runner:
-		runner_name = selected_runner.split(":")[1].strip_edges()
+	# Use runner properties directly
+	selected_runner_label.text = "Selected: %s" % selected_runner.name
 	
-	selected_runner_label.text = "Selected: %s" % runner_name
-	
-	# Show training sessions used
-	var sessions_used = training_sessions.get(selected_runner, 0)
+	# Show training sessions used (use unique_id as key)
+	var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
 	var sessions_text = "Training Sessions: %d / %d" % [sessions_used, MAX_TRAINING_PER_PHASE]
 	
 	# Get runner stats and injury status
-	var runner = Runner.from_string(selected_runner)
-	var stats = runner.get_display_stats()
-	var injury_status = runner.get_injury_status()
+	var stats = selected_runner.get_display_stats()
+	var injury_status = selected_runner.get_injury_status()
 	
 	# Build history text
 	var history_text = sessions_text + "\n\n"
@@ -125,8 +117,8 @@ func _display_runners() -> void:
 	varsity_header.add_theme_font_size_override("font_size", 18)
 	runners_container.add_child(varsity_header)
 	
-	for runner_string in GameManager.varsity_team:
-		_create_runner_button(runner_string, true)
+	for runner in GameManager.varsity_team:
+		_create_runner_button(runner, true)
 	
 	# Display JV runners
 	if GameManager.jv_team.size() > 0:
@@ -137,18 +129,17 @@ func _display_runners() -> void:
 		jv_header.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		runners_container.add_child(jv_header)
 		
-		for runner_string in GameManager.jv_team:
-			_create_runner_button(runner_string, false)
+		for runner in GameManager.jv_team:
+			_create_runner_button(runner, false)
 
-func _create_runner_button(runner_string: String, is_varsity: bool) -> void:
-	var runner = Runner.from_string(runner_string)
+func _create_runner_button(runner: Runner, is_varsity: bool) -> void:
 	var runner_name = runner.name
 	var display_name = runner.display_name
 	
 	# Get stats for display
 	var stats = runner.get_display_stats()
 	var injury_status = runner.get_injury_status()
-	var sessions_used = training_sessions.get(runner_string, 0)
+	var sessions_used = training_sessions.get(runner.get_id(), 0)
 	
 	# Create button
 	var button = Button.new()
@@ -177,7 +168,7 @@ func _create_runner_button(runner_string: String, is_varsity: bool) -> void:
 	_style_runner_button(button, is_varsity, sessions_used >= MAX_TRAINING_PER_PHASE)
 	
 	# Connect signal
-	button.pressed.connect(_on_runner_selected.bind(runner_string))
+	button.pressed.connect(_on_runner_selected.bind(runner))
 	
 	runners_container.add_child(button)
 
@@ -281,28 +272,42 @@ func _style_workout_button(button: Button, workout_type: String) -> void:
 	button.add_theme_stylebox_override("normal", style_normal)
 	button.add_theme_stylebox_override("hover", style_hover)
 
-func _on_runner_selected(runner_string: String) -> void:
-	selected_runner = runner_string
+func _on_runner_selected(runner: Runner) -> void:
+	selected_runner = runner
 	_update_selected_runner_display()
 	_update_workout_buttons()
 
 func _on_workout_selected(workout_type: String) -> void:
-	if selected_runner == "":
+	if selected_runner == null:
 		_show_feedback("⚠️ Please select a runner first!", false)
 		return
 	
-	# Check if runner can train more
-	var sessions_used = training_sessions.get(selected_runner, 0)
-	if sessions_used >= MAX_TRAINING_PER_PHASE:
-		_show_feedback("⚠️ This runner has reached the training limit (%d sessions)!" % MAX_TRAINING_PER_PHASE, false)
+	var workout_data = WORKOUT_TYPES.get(workout_type, {})
+	if workout_data.is_empty():
+		_show_feedback("⚠️ Unknown workout type!", false)
 		return
 	
-	# Check training points
-	var workout_data = WORKOUT_TYPES[workout_type]
+	var cost_type = workout_data.get("cost_type", "tp")
 	var cost = workout_data.cost
-	if GameManager.get_training_points() < cost:
-		_show_feedback("⚠️ Not enough training points! Need %d, have %d" % [cost, GameManager.get_training_points()], false)
-		return
+	
+	# Recovery workouts don't count against training session limit
+	var is_recovery = workout_type.begins_with("recovery")
+	if not is_recovery:
+		# Check if runner can train more (use unique_id as key)
+		var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
+		if sessions_used >= MAX_TRAINING_PER_PHASE:
+			_show_feedback("⚠️ This runner has reached the training limit (%d sessions)!" % MAX_TRAINING_PER_PHASE, false)
+			return
+	
+	# Check cost based on type
+	if cost_type == "tp":
+		if GameManager.get_training_points() < cost:
+			_show_feedback("⚠️ Not enough training points! Need %d, have %d" % [cost, GameManager.get_training_points()], false)
+			return
+	elif cost_type == "gold":
+		if GameManager.get_gold() < cost:
+			_show_feedback("⚠️ Not enough gold! Need %d, have %d" % [cost, GameManager.get_gold()], false)
+			return
 	
 	# Generate a fixed seed for consistent before/after comparison
 	# This eliminates random variance so we can see the actual impact of training
@@ -318,16 +323,15 @@ func _on_workout_selected(workout_type: String) -> void:
 	# Calculate individual runner strengths before training
 	var runner_strengths_before: Dictionary = {}
 	var team_avg_strength_before = 0.0
-	for runner_string in GameManager.varsity_team:
-		var runner_obj = GameManager.get_runner_object(runner_string)
+	for runner_obj in GameManager.varsity_team:
 		var stats = runner_obj.get_display_stats()
 		var strength = _calculate_runner_strength_from_stats(stats.current)
-		runner_strengths_before[runner_string] = strength
+		runner_strengths_before[runner_obj.get_id()] = strength
 		team_avg_strength_before += strength
 	team_avg_strength_before /= float(GameManager.varsity_team.size())
 	
-	# Get or create Runner object (this ensures training persists)
-	var runner = GameManager.get_runner_object(selected_runner)
+	# Use selected runner directly (already a Runner object)
+	var runner = selected_runner
 	var base_gain = workout_data.base_gain
 	
 	# Get runner stats before training
@@ -356,15 +360,14 @@ func _on_workout_selected(workout_type: String) -> void:
 	# Calculate individual runner strengths after training
 	var runner_strengths_after: Dictionary = {}
 	var team_avg_strength_after = 0.0
-	for runner_string in GameManager.varsity_team:
-		var runner_obj = GameManager.get_runner_object(runner_string)
+	for runner_obj in GameManager.varsity_team:
 		var stats = runner_obj.get_display_stats()
 		var strength = _calculate_runner_strength_from_stats(stats.current)
-		runner_strengths_after[runner_string] = strength
+		runner_strengths_after[runner_obj.get_id()] = strength
 		team_avg_strength_after += strength
 	team_avg_strength_after /= float(GameManager.varsity_team.size())
 	
-	# Log training impact
+	# Log training impact (pass runner object for logging)
 	_log_training_impact(selected_runner, workout_type, runner_stats_before, runner_stats_after, 
 		win_prob_before, win_prob_after, team_stats_before, team_stats_after, opponent_target_before, opponent_target_after,
 		runner_strengths_before, runner_strengths_after, team_avg_strength_before, team_avg_strength_after, comparison_seed)
@@ -372,7 +375,7 @@ func _on_workout_selected(workout_type: String) -> void:
 	# Build feedback message
 	var feedback_text = "✓ Training complete! "
 	
-	if workout_type == "recovery":
+	if workout_type.begins_with("recovery"):
 		# Recovery workout feedback
 		var recovery_amount = injury_before.meter - injury_after.meter
 		feedback_text += "Recovered %.1f%% injury. " % recovery_amount
@@ -380,6 +383,16 @@ func _on_workout_selected(workout_type: String) -> void:
 			feedback_text += "Runner is now healthy!"
 		else:
 			feedback_text += "Injury: %.1f%%" % injury_after.meter
+		
+		# Special handling for premium recovery (more recovery)
+		if workout_type == "recovery_premium":
+			# Premium recovery gives extra recovery
+			var extra_recovery = 5.0 + (randf() * 5.0)  # 5-10 extra points
+			selected_runner.recover(extra_recovery)
+			var final_injury = selected_runner.get_injury_status()
+			feedback_text += "\nPremium treatment: +%.1f%% recovery!" % extra_recovery
+			if final_injury.meter < 30.0:
+				feedback_text += " Runner is now healthy!"
 	else:
 		# Regular training feedback
 		var gain_parts: Array[String] = []
@@ -408,11 +421,16 @@ func _on_workout_selected(workout_type: String) -> void:
 	
 	_show_feedback(feedback_text, true)
 	
-	# Spend training points
-	GameManager.spend_training_points(cost)
+	# Spend cost based on type
+	if cost_type == "tp":
+		GameManager.spend_training_points(cost)
+	elif cost_type == "gold":
+		GameManager.spend_gold(cost)
 	
-	# Increment training sessions
-	training_sessions[selected_runner] = sessions_used + 1
+	# Increment training sessions only for non-recovery workouts (use unique_id as key)
+	if not is_recovery:
+		var sessions_used = training_sessions.get(selected_runner.get_id(), 0)
+		training_sessions[selected_runner.get_id()] = sessions_used + 1
 	
 	# Update display
 	_update_display()
@@ -421,12 +439,12 @@ func _on_workout_selected(workout_type: String) -> void:
 	_update_workout_buttons()
 
 func _update_workout_buttons() -> void:
-	# Enable/disable workout buttons based on selected runner and available points
+	# Enable/disable workout buttons based on selected runner and available resources
 	var can_train = false
 	var sessions_used = 0
 	
-	if selected_runner != "":
-		sessions_used = training_sessions.get(selected_runner, 0)
+	if selected_runner != null:
+		sessions_used = training_sessions.get(selected_runner.get_id(), 0)
 		can_train = sessions_used < MAX_TRAINING_PER_PHASE
 	
 	for child in workouts_container.get_children():
@@ -435,18 +453,32 @@ func _update_workout_buttons() -> void:
 			var workout_type = button.get_meta("workout_type", "")
 			var workout_data = WORKOUT_TYPES.get(workout_type, {})
 			var cost = workout_data.get("cost", 1)
+			var cost_type = workout_data.get("cost_type", "tp")
 			
-			var can_afford = GameManager.get_training_points() >= cost
-			var should_disable = not (can_afford and can_train and selected_runner != "")
+			# Recovery workouts don't count against session limit
+			var is_recovery = workout_type.begins_with("recovery")
+			var can_use_workout = can_train or is_recovery
+			
+			# Check affordability based on cost type
+			var can_afford = false
+			if cost_type == "tp":
+				can_afford = GameManager.get_training_points() >= cost
+			elif cost_type == "gold":
+				can_afford = GameManager.get_gold() >= cost
+			
+			var should_disable = not (can_afford and can_use_workout and selected_runner != null)
 			
 			button.disabled = should_disable
 			
 			# Update button text to show why it's disabled
-			if should_disable and selected_runner != "":
+			if should_disable and selected_runner != null:
 				var reason = ""
 				if not can_afford:
-					reason = " (Need %d TP)" % cost
-				elif not can_train:
+					if cost_type == "tp":
+						reason = " (Need %d TP)" % cost
+					elif cost_type == "gold":
+						reason = " (Need %d Gold)" % cost
+				elif not can_use_workout and not is_recovery:
 					reason = " (Max sessions)"
 				# Don't change text if no runner selected (that's handled by empty selection)
 
@@ -506,9 +538,9 @@ func _get_team_stats_summary() -> Dictionary:
 	var total_stamina = 0
 	var total_power = 0
 	
-	for runner_string in GameManager.varsity_team:
+	for runner in GameManager.varsity_team:
 		# Use get_item_effect to see what race calculations actually use
-		var effect = GameManager.get_item_effect(runner_string, "team")
+		var effect = GameManager.get_item_effect(runner, "team")
 		total_speed += effect.speed
 		total_endurance += effect.endurance
 		total_stamina += effect.stamina
@@ -522,7 +554,7 @@ func _get_team_stats_summary() -> Dictionary:
 		"total": total_speed + total_endurance + total_stamina + total_power
 	}
 
-func _log_training_impact(runner_string: String, workout_type: String, stats_before: Dictionary, 
+func _log_training_impact(runner: Runner, workout_type: String, stats_before: Dictionary, 
 		stats_after: Dictionary, win_prob_before: float, win_prob_after: float,
 		team_stats_before: Dictionary, team_stats_after: Dictionary, 
 		opponent_target_before: float, opponent_target_after: float,
@@ -535,11 +567,10 @@ func _log_training_impact(runner_string: String, workout_type: String, stats_bef
 	print(separator)
 	
 	# Runner info
-	var runner_name = runner_string
-	if ":" in runner_string:
-		runner_name = runner_string.split(":")[1].strip_edges()
+	var runner_name = runner.name
+	var runner_id = runner.get_id()
 	
-	print("Runner: %s" % runner_name)
+	print("Runner: %s (ID: %d)" % [runner_name, runner_id])
 	print("Workout: %s" % workout_type)
 	print("Comparison Seed: %d (fixed seed for consistent before/after comparison)" % comparison_seed)
 	print("")
@@ -600,7 +631,7 @@ func _log_training_impact(runner_string: String, workout_type: String, stats_bef
 	# Note: We can't get "before" stats from get_item_effect after training is applied
 	# because the Runner object has been modified. So we compare with runner_stats_before
 	print("STATS USED IN RACE CALCULATIONS (via get_item_effect):")
-	var race_effect_after = GameManager.get_item_effect(runner_string, "team")
+	var race_effect_after = GameManager.get_item_effect(runner, "team")
 	
 	print("  Runner Stats (from Runner object):")
 	print("    Before: Spd:%d End:%d Sta:%d Pow:%d" % [
@@ -695,17 +726,19 @@ func _log_training_impact(runner_string: String, workout_type: String, stats_bef
 	# Show individual runner strength changes
 	print("INDIVIDUAL RUNNER STRENGTH CHANGES:")
 	print("  (Lower strength = better performance)")
-	for runner_string_key in runner_strengths_before.keys():
-		var runner_display_name = runner_string_key
-		if ":" in runner_string_key:
-			runner_display_name = runner_string_key.split(":")[1].strip_edges()
+	for runner_id_key in runner_strengths_before.keys():
+		# Get runner from registry to get display name
+		var runner_obj = GameManager.get_runner_by_id(runner_id_key)
+		var runner_display_name = "Unknown"
+		if runner_obj != null:
+			runner_display_name = runner_obj.name
 		
-		var strength_before = runner_strengths_before[runner_string_key]
-		var strength_after = runner_strengths_after.get(runner_string_key, strength_before)
+		var strength_before = runner_strengths_before[runner_id_key]
+		var strength_after = runner_strengths_after.get(runner_id_key, strength_before)
 		var strength_change = strength_after - strength_before
 		
 		var marker = ""
-		if runner_string_key == runner_string:
+		if runner_id_key == runner_id:
 			marker = " ← TRAINED"
 		
 		print("    %s: %.2f → %.2f (%+.2f)%s" % [
@@ -726,7 +759,7 @@ func _log_training_impact(runner_string: String, workout_type: String, stats_bef
 	# Show which runner was trained and their position in team
 	var runner_index = -1
 	for i in range(GameManager.varsity_team.size()):
-		if GameManager.varsity_team[i] == runner_string:
+		if GameManager.varsity_team[i].get_id() == runner_id:
 			runner_index = i
 			break
 	
@@ -734,11 +767,11 @@ func _log_training_impact(runner_string: String, workout_type: String, stats_bef
 		print("TRAINED RUNNER DETAILS:")
 		print("  Position: %d of %d in varsity team" % [runner_index + 1, GameManager.varsity_team.size()])
 		print("  Individual Strength: %.2f → %.2f (%+.2f)" % [
-			runner_strengths_before[runner_string], runner_strengths_after[runner_string],
-			runner_strengths_after[runner_string] - runner_strengths_before[runner_string]
+			runner_strengths_before[runner_id], runner_strengths_after[runner_id],
+			runner_strengths_after[runner_id] - runner_strengths_before[runner_id]
 		])
 		print("  Team Impact: %.2f%% of team average strength" % [
-			((runner_strengths_after[runner_string] - runner_strengths_before[runner_string]) / max(0.001, team_avg_strength_before)) * 100.0
+			((runner_strengths_after[runner_id] - runner_strengths_before[runner_id]) / max(0.001, team_avg_strength_before)) * 100.0
 		])
 		print("")
 	

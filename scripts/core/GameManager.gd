@@ -16,8 +16,8 @@ var max_ante := 20
 var current_race_type: RaceType = RaceType.DUAL_MEET
 
 # Team structure: 5 varsity + 2 JV
-var varsity_team = []    # 5 varsity runners (main scoring team)
-var jv_team = []         # 2 JV runners (support/development)
+var varsity_team: Array[Runner] = []    # 5 varsity runners (main scoring team)
+var jv_team: Array[Runner] = []         # 2 JV runners (support/development)
 var deck = []            # race event cards (support items)
 var jokers = []          # permanent runner modifiers
 var shop_inventory = []  # practice/shop selections (equipment)
@@ -26,6 +26,12 @@ var seed = 0             # run RNG seed
 var race_counter = 0     # counter to vary seed between races at same ante
 var run_active := false
 var draft_completed := false  # Track if initial draft has been completed
+
+# Permadeath / failure (Phase 4.1)
+const FAILURE_CONSECUTIVE_LOSSES := 3
+var consecutive_losses := 0
+var races_won_this_run := 0
+var last_run_stats: Dictionary = {}  # Populated on end_run for Run Failed screen
 
 # Currency
 var gold := 100          # Starting gold for new runs
@@ -293,8 +299,12 @@ const RUNNER_GROWTH_POTENTIAL = {
 	}
 }
 
-# Save file path for unlocks
+# Save file paths
 const UNLOCKS_SAVE_PATH = "user://unlocks.save"
+const RUN_SAVE_PATH_PREFIX = "user://run_save_"
+const RUN_SAVE_PATH_SUFFIX = ".json"
+const MAX_SAVE_SLOTS = 3
+const SAVE_VERSION = 1
 
 func _ready() -> void:
 	# Load unlocked divisions on game start
@@ -447,12 +457,362 @@ func _string_to_division(div_string: String) -> Division:
 		_:
 			return -1
 
+func _race_type_to_string(race_type: RaceType) -> String:
+	match race_type:
+		RaceType.DUAL_MEET:
+			return "dual_meet"
+		RaceType.TRI_MEET:
+			return "tri_meet"
+		RaceType.INVITATIONAL:
+			return "invitational"
+		RaceType.QUALIFIERS:
+			return "qualifiers"
+		RaceType.CHAMPIONSHIP:
+			return "championship"
+		_:
+			return "dual_meet"
+
+func _string_to_race_type(race_type_string: String) -> RaceType:
+	match race_type_string:
+		"dual_meet":
+			return RaceType.DUAL_MEET
+		"tri_meet":
+			return RaceType.TRI_MEET
+		"invitational":
+			return RaceType.INVITATIONAL
+		"qualifiers":
+			return RaceType.QUALIFIERS
+		"championship":
+			return RaceType.CHAMPIONSHIP
+		_:
+			return RaceType.DUAL_MEET
+
 func show_unlock_notification(division: Division) -> void:
 	var config = get_division_config(division)
 	var division_name = config.get("name", "Unknown Division")
 	print("🎉 UNLOCKED: %s" % division_name)
 	# TODO: Show in-game notification/popup
 	# For now, just print to console
+
+# ============================================
+# RUN SAVE/LOAD SYSTEM
+# ============================================
+
+# Get save file path for a specific slot
+func get_save_path(slot: int) -> String:
+	return RUN_SAVE_PATH_PREFIX + str(slot) + RUN_SAVE_PATH_SUFFIX
+
+# Save current run to a specific slot
+func save_run(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		print("Error: Invalid save slot: ", slot)
+		return false
+	
+	if not run_active:
+		print("Error: No active run to save")
+		return false
+	
+	# Save teams as arrays of unique_ids (references only)
+	# This is more efficient and maintains single source of truth
+	var varsity_team_ids: Array = []
+	for runner in varsity_team:
+		varsity_team_ids.append(runner.unique_id)
+	
+	var jv_team_ids: Array = []
+	for runner in jv_team:
+		jv_team_ids.append(runner.unique_id)
+	
+	# Convert runner_registry to dictionaries (single source of truth)
+	var runner_registry_dicts: Dictionary = {}
+	for runner_id in runner_registry.keys():
+		var runner = runner_registry[runner_id]
+		runner_registry_dicts[str(runner_id)] = runner.to_dict()
+	
+	# Build save data
+	var save_data = {
+		"version": SAVE_VERSION,
+		"timestamp": Time.get_unix_time_from_system(),
+		"run_active": run_active,
+		"current_ante": current_ante,
+		"max_ante": max_ante,
+		"current_race_type": _race_type_to_string(current_race_type),
+		"current_division": _division_to_string(current_division),
+		"seed": seed,
+		"race_counter": race_counter,
+		"draft_completed": draft_completed,
+		"gold": gold,
+		"training_points": training_points,
+		"base_speed": base_speed,
+		"base_endurance": base_endurance,
+		"base_stamina": base_stamina,
+		"base_power": base_power,
+		"varsity_team": varsity_team_ids,  # Just IDs, not full objects
+		"jv_team": jv_team_ids,            # Just IDs, not full objects
+		"deck": deck.duplicate(),
+		"jokers": jokers.duplicate(),
+		"shop_inventory": shop_inventory.duplicate(),
+		"runner_registry": runner_registry_dicts,  # Single source of truth
+		"runner_next_id": Runner.next_id,
+		"shop_price_multiplier": shop_price_multiplier,
+		"reward_multiplier_modifier": reward_multiplier_modifier,
+		"enable_contracts": enable_contracts,
+		"enable_sponsorships": enable_sponsorships,
+		"no_consolation_gold": no_consolation_gold,
+		"opponent_base_strength_multiplier": opponent_base_strength_multiplier,
+		"consecutive_losses": consecutive_losses,
+		"races_won_this_run": races_won_this_run
+	}
+	
+	# Write to file
+	var save_path = get_save_path(slot)
+	var file = FileAccess.open(save_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(save_data)
+		file.store_string(json_string)
+		file.close()
+		print("Saved run to slot ", slot, ": ", save_path)
+		return true
+	else:
+		print("Error: Could not save run to file: ", save_path)
+		return false
+
+# Load run from a specific slot
+func load_run(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		print("Error: Invalid save slot: ", slot)
+		return false
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		print("Error: Save file does not exist: ", save_path)
+		return false
+	
+	var file = FileAccess.open(save_path, FileAccess.READ)
+	if not file:
+		print("Error: Could not open save file: ", save_path)
+		return false
+	
+	var json_string = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+	
+	if parse_result != OK:
+		print("Error: Failed to parse save file JSON")
+		return false
+	
+	var save_data = json.data
+	
+	# Validate version
+	if not save_data.has("version") or save_data.version != SAVE_VERSION:
+		print("Error: Save file version mismatch or missing version")
+		return false
+	
+	# Load basic run state
+	run_active = save_data.get("run_active", false)
+	current_ante = save_data.get("current_ante", 1)
+	max_ante = save_data.get("max_ante", 5)
+	current_race_type = _string_to_race_type(save_data.get("current_race_type", "dual_meet"))
+	current_division = _string_to_division(save_data.get("current_division", "high_school"))
+	seed = save_data.get("seed", 0)
+	race_counter = save_data.get("race_counter", 0)
+	draft_completed = save_data.get("draft_completed", false)
+	gold = save_data.get("gold", 100)
+	training_points = save_data.get("training_points", 0)
+	base_speed = save_data.get("base_speed", 10)
+	base_endurance = save_data.get("base_endurance", 10)
+	base_stamina = save_data.get("base_stamina", 10)
+	base_power = save_data.get("base_power", 10)
+	
+	print("Loading run state - run_active: ", run_active, ", ante: ", current_ante, ", division: ", current_division)
+	
+	# Restore division config
+	division_config = DIVISION_DATA[current_division]
+	
+	# Restore special rules
+	shop_price_multiplier = save_data.get("shop_price_multiplier", 1.0)
+	reward_multiplier_modifier = save_data.get("reward_multiplier_modifier", 1.0)
+	enable_contracts = save_data.get("enable_contracts", false)
+	enable_sponsorships = save_data.get("enable_sponsorships", false)
+	no_consolation_gold = save_data.get("no_consolation_gold", false)
+	opponent_base_strength_multiplier = save_data.get("opponent_base_strength_multiplier", 1.0)
+	consecutive_losses = save_data.get("consecutive_losses", 0)
+	races_won_this_run = save_data.get("races_won_this_run", 0)
+	
+	# Clear existing teams and collections
+	varsity_team.clear()
+	jv_team.clear()
+	deck.clear()
+	jokers.clear()
+	shop_inventory.clear()
+	runner_objects.clear()
+	runner_registry.clear()
+	
+	# Restore Runner.next_id FIRST (before loading runners)
+	# This ensures Runner.from_dict() can properly track IDs
+	if save_data.has("runner_next_id"):
+		Runner.next_id = save_data.runner_next_id
+	
+	# Restore runner_registry first (single source of truth)
+	# The registry contains all runners, and teams reference them by unique_id
+	if save_data.has("runner_registry"):
+		for runner_id_str in save_data.runner_registry.keys():
+			var runner_dict = save_data.runner_registry[runner_id_str]
+			var runner = Runner.from_dict(runner_dict)
+			var runner_id = int(runner_id_str)  # Ensure integer type
+			runner_registry[runner_id] = runner
+			# Also add to runner_objects for backward compatibility
+			runner_objects[runner.display_name] = runner
+		
+		print("Restored runner_registry with ", runner_registry.size(), " runners")
+		print("Registry IDs: ", runner_registry.keys())
+	
+	# Handle backward compatibility: detect old save format (teams contain dictionaries)
+	var is_old_format = false
+	if save_data.has("varsity_team") and save_data.varsity_team.size() > 0:
+		if save_data.varsity_team[0] is Dictionary:
+			is_old_format = true
+			print("Detected old save format - migrating to reference-based system...")
+			# Migrate old format: extract IDs from dictionaries
+			var varsity_ids = []
+			for runner_dict in save_data.varsity_team:
+				var runner_id = runner_dict.get("unique_id", -1)
+				if runner_id >= 0:
+					varsity_ids.append(int(runner_id))  # Ensure integer
+			save_data.varsity_team = varsity_ids
+			
+			# Same for JV team
+			if save_data.has("jv_team") and save_data.jv_team.size() > 0:
+				if save_data.jv_team[0] is Dictionary:
+					var jv_ids = []
+					for runner_dict in save_data.jv_team:
+						var runner_id = runner_dict.get("unique_id", -1)
+						if runner_id >= 0:
+							jv_ids.append(int(runner_id))  # Ensure integer
+					save_data.jv_team = jv_ids
+	
+	# Restore varsity team by looking up runners in registry
+	# Convert IDs to int (JSON may save numbers as floats)
+	if save_data.has("varsity_team"):
+		for runner_id_raw in save_data.varsity_team:
+			var runner_id = int(runner_id_raw)  # Ensure integer type
+			if runner_registry.has(runner_id):
+				var runner = runner_registry[runner_id]
+				runner.is_varsity = true
+				runner.team_index = varsity_team.size()
+				varsity_team.append(runner)
+			else:
+				push_error("Runner ID %d not found in registry when restoring varsity team" % runner_id)
+				print("WARNING: Runner ID ", runner_id, " not found in registry when restoring varsity team")
+				print("  Available IDs in registry: ", runner_registry.keys())
+	
+	# Restore JV team by looking up runners in registry
+	# Convert IDs to int (JSON may save numbers as floats)
+	if save_data.has("jv_team"):
+		for runner_id_raw in save_data.jv_team:
+			var runner_id = int(runner_id_raw)  # Ensure integer type
+			if runner_registry.has(runner_id):
+				var runner = runner_registry[runner_id]
+				runner.is_varsity = false
+				runner.team_index = jv_team.size()
+				jv_team.append(runner)
+			else:
+				push_error("Runner ID %d not found in registry when restoring JV team" % runner_id)
+				print("WARNING: Runner ID ", runner_id, " not found in registry when restoring JV team")
+				print("  Available IDs in registry: ", runner_registry.keys())
+	
+	print("Loaded teams - Varsity: ", varsity_team.size(), " runners, JV: ", jv_team.size(), " runners")
+	print("Runner registry size: ", runner_registry.size())
+	
+	# Restore collections
+	if save_data.has("deck"):
+		deck = save_data.deck.duplicate()
+	if save_data.has("jokers"):
+		jokers = save_data.jokers.duplicate()
+	if save_data.has("shop_inventory"):
+		shop_inventory = save_data.shop_inventory.duplicate()
+	
+	print("Loaded run from slot ", slot, ": ", save_path)
+	print("Final state - run_active: ", run_active, ", varsity_team size: ", varsity_team.size(), ", jv_team size: ", jv_team.size())
+	return true
+
+# Get metadata for a save slot (returns null if slot is empty)
+func get_save_slot_metadata(slot: int) -> Dictionary:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return {}
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		return {}  # Empty slot
+	
+	var file = FileAccess.open(save_path, FileAccess.READ)
+	if not file:
+		return {}
+	
+	var json_string = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+	
+	if parse_result != OK:
+		return {}
+	
+	var save_data = json.data
+	
+	# Extract metadata
+	var timestamp = save_data.get("timestamp", 0)
+	var division_str = save_data.get("current_division", "high_school")
+	var division = _string_to_division(division_str)
+	var division_config_data = DIVISION_DATA.get(division, {})
+	var division_name = division_config_data.get("name", "Unknown")
+	var ante = save_data.get("current_ante", 1)
+	var gold_amount = save_data.get("gold", 0)
+	
+	# Format timestamp
+	var date_time = Time.get_datetime_dict_from_unix_time(timestamp)
+	var date_string = "%02d/%02d/%04d %02d:%02d" % [
+		date_time.month,
+		date_time.day,
+		date_time.year,
+		date_time.hour,
+		date_time.minute
+	]
+	
+	return {
+		"slot": slot,
+		"exists": true,
+		"timestamp": timestamp,
+		"date_string": date_string,
+		"division": division_name,
+		"ante": ante,
+		"gold": gold_amount,
+		"version": save_data.get("version", 0)
+	}
+
+# Check if a save slot exists
+func save_slot_exists(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return false
+	return FileAccess.file_exists(get_save_path(slot))
+
+# Delete a save slot
+func delete_save_slot(slot: int) -> bool:
+	if slot < 1 or slot > MAX_SAVE_SLOTS:
+		return false
+	
+	var save_path = get_save_path(slot)
+	if not FileAccess.file_exists(save_path):
+		return false
+	
+	var error = DirAccess.remove_absolute(save_path)
+	if error == OK:
+		print("Deleted save slot ", slot)
+		return true
+	else:
+		print("Error deleting save slot ", slot, ": ", error)
+		return false
 
 func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	current_division = division
@@ -479,12 +839,18 @@ func start_new_run(division: Division = Division.HIGH_SCHOOL) -> void:
 	
 	# Clear Runner objects (training resets on new run)
 	runner_objects.clear()
+	runner_registry.clear()
 	
 	# Reset currency
 	training_points = 0
 	
 	# Reset draft flag
 	draft_completed = false
+	
+	# Reset failure tracking
+	consecutive_losses = 0
+	races_won_this_run = 0
+	last_run_stats.clear()
 	
 	# Give starting team based on tier (will be cleared if player goes through draft)
 	_give_starting_team_for_division(division_config.get("starting_team_tier", "common"))
@@ -552,7 +918,9 @@ func _log_team_stats() -> void:
 func _give_basic_team() -> void:
 	# 5 Freshman Walk-ons (5/5/5/5 each = 25/25/25/25 total)
 	for i in range(5):
-		add_varsity_runner("Runner: Freshman Walk-on")
+		var runner = Runner.new("Freshman Walk-on", "Runner: Freshman Walk-on")
+		register_runner(runner)
+		add_varsity_runner(runner)
 
 func _give_common_team() -> void:
 	# Use seed for deterministic but varied teams
@@ -587,7 +955,11 @@ func _give_common_team() -> void:
 	
 	var selected_variant = team_variants[randi() % team_variants.size()]
 	
-	for runner in selected_variant:
+	for runner_string in selected_variant:
+		# Extract runner name from "Runner: Name" format
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 	
 	randomize()  # Restore global RNG
@@ -603,7 +975,10 @@ func _give_common_plus_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in common_plus_runners:
+	for runner_string in common_plus_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_rare_team() -> void:
@@ -617,7 +992,10 @@ func _give_rare_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in rare_runners:
+	for runner_string in rare_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_rare_plus_team() -> void:
@@ -631,7 +1009,10 @@ func _give_rare_plus_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in rare_plus_runners:
+	for runner_string in rare_plus_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_epic_team() -> void:
@@ -645,7 +1026,10 @@ func _give_epic_team() -> void:
 		"Runner: The Closer"             # Speed: 15, Stamina: 5
 	]
 	
-	for runner in epic_runners:
+	for runner_string in epic_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _give_legendary_team() -> void:
@@ -659,7 +1043,10 @@ func _give_legendary_team() -> void:
 		"Runner: JV Legend"               # Balanced: 10/10/10/10
 	]
 	
-	for runner in legendary_runners:
+	for runner_string in legendary_runners:
+		var runner_name = runner_string.split(":")[1].strip_edges() if ":" in runner_string else runner_string
+		var runner = Runner.new(runner_name, runner_string)
+		register_runner(runner)
 		add_varsity_runner(runner)
 
 func _apply_division_special_rules(special_rules: Array) -> void:
@@ -716,6 +1103,37 @@ func _check_division_completion() -> void:
 		print("Completed division! Unlocked: ", config.get("name", "Unknown"))
 
 # ============================================
+# PERMADEATH / FAILURE (Phase 4.1)
+# ============================================
+
+func record_race_result(won: bool) -> void:
+	if won:
+		races_won_this_run += 1
+		consecutive_losses = 0
+	else:
+		consecutive_losses += 1
+
+func end_run(reason: String) -> void:
+	run_active = false
+	var starting_gold_val = division_config.get("starting_gold", 100)
+	last_run_stats = {
+		"reason": reason,
+		"division_name": division_config.get("name", "Unknown"),
+		"ante_reached": current_ante,
+		"max_ante": max_ante,
+		"races_won": races_won_this_run,
+		"final_gold": gold,
+		"gold_earned": gold - starting_gold_val
+	}
+	print("Run ended: ", reason, " | Ante: ", current_ante, " | Races won: ", races_won_this_run)
+
+func get_last_run_stats() -> Dictionary:
+	return last_run_stats.duplicate()
+
+func is_run_failed() -> bool:
+	return consecutive_losses >= FAILURE_CONSECUTIVE_LOSSES
+
+# ============================================
 # RACE TYPE SYSTEM
 # ============================================
 
@@ -762,6 +1180,31 @@ func get_race_type_name(race_type: Variant = null) -> String:
 		return _get_race_type_name(current_race_type)
 	else:
 		return _get_race_type_name(race_type as RaceType)
+
+# Calculate race intensity (0.0-1.0) for injury risk calculation
+# Higher intensity = more injury risk
+func _calculate_race_intensity() -> float:
+	var base_intensity = 0.3  # Base intensity for dual/tri meets
+	
+	# Scale by race type
+	match current_race_type:
+		RaceType.DUAL_MEET:
+			base_intensity = 0.2  # Low intensity
+		RaceType.TRI_MEET:
+			base_intensity = 0.3  # Low-medium intensity
+		RaceType.INVITATIONAL:
+			base_intensity = 0.5  # Medium intensity
+		RaceType.QUALIFIERS:
+			base_intensity = 0.7  # High intensity
+		RaceType.CHAMPIONSHIP:
+			base_intensity = 0.9  # Very high intensity
+	
+	# Scale with ante (later races are more intense)
+	var ante_scaling = 1.0 + ((current_ante - 1) * 0.05)  # 5% increase per ante
+	base_intensity *= ante_scaling
+	
+	# Cap at 1.0
+	return min(base_intensity, 1.0)
 
 # ============================================
 # CURRENCY SYSTEM
@@ -866,7 +1309,8 @@ func calculate_training_points(race_result: Dictionary) -> int:
 
 
 # Store Runner objects to persist training gains
-var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object
+var runner_objects: Dictionary = {}  # Maps runner_string -> Runner object (kept for backward compatibility during migration)
+var runner_registry: Dictionary = {}  # Maps unique_id -> Runner object
 
 # Get or create Runner object for a runner string
 func get_runner_object(runner_string: String) -> Runner:
@@ -874,11 +1318,24 @@ func get_runner_object(runner_string: String) -> Runner:
 		# Create and store Runner object
 		var runner = Runner.from_string(runner_string)
 		runner_objects[runner_string] = runner
+		# Also register in runner_registry by unique_id
+		runner_registry[runner.get_id()] = runner
 	return runner_objects[runner_string]
+
+# Register a Runner object in the registry
+func register_runner(runner: Runner) -> void:
+	runner_registry[runner.get_id()] = runner
+
+# Get Runner by unique_id from registry
+func get_runner_by_id(unique_id: int) -> Runner:
+	if runner_registry.has(unique_id):
+		return runner_registry[unique_id]
+	return null
 
 # Get item effect - returns a dictionary with stat bonuses
 # For runners, now includes training gains if Runner object exists
-func get_item_effect(item_name: String, category: String) -> Dictionary:
+# item_name can be either a String (for backward compatibility) or a Runner object
+func get_item_effect(item_name: Variant, category: String) -> Dictionary:
 	var effect = {
 		"speed": 0,
 		"endurance": 0,
@@ -887,22 +1344,39 @@ func get_item_effect(item_name: String, category: String) -> Dictionary:
 		"multiplier": 1.0  # For boosts
 	}
 	
-	# Extract base name (remove prefix like "Runner: ", "Card: ", etc.)
-	var base_name = item_name
-	if ":" in item_name:
-		base_name = item_name.split(":")[1].strip_edges()
+	# Extract base name for string-based lookups (for non-Runner items)
+	# If item_name is a Runner, we handle it directly in the "team" category
+	var base_name = ""
+	if item_name is String:
+		base_name = item_name
+		if ":" in item_name:
+			base_name = item_name.split(":")[1].strip_edges()
 	
 	match category:
 		"team":
-			# Check if we have a Runner object with training gains
-			if runner_objects.has(item_name):
-				var runner = runner_objects[item_name]
+			# Check if item_name is a Runner object directly
+			if item_name is Runner:
+				var runner = item_name as Runner
 				var effective_stats = runner.get_effective_stats()
 				effect.speed = effective_stats.speed
 				effect.endurance = effective_stats.endurance
 				effect.stamina = effective_stats.stamina
 				effect.power = effective_stats.power
 				return effect
+			
+			# Fallback: treat as string for backward compatibility
+			var runner_string = item_name as String
+			# Check if we have a Runner object with training gains (string lookup)
+			if runner_objects.has(runner_string):
+				var runner = runner_objects[runner_string]
+				var effective_stats = runner.get_effective_stats()
+				effect.speed = effective_stats.speed
+				effect.endurance = effective_stats.endurance
+				effect.stamina = effective_stats.stamina
+				effect.power = effective_stats.power
+				return effect
+			
+			# base_name already extracted above for string-based lookups
 			
 			# Otherwise, use base stats from runner type definition
 			# Runners add base stats
@@ -1079,47 +1553,85 @@ func get_runner_growth_potential(runner_name: String) -> Dictionary:
 
 
 # Team management functions
-func add_varsity_runner(runner_name: String) -> bool:
+func add_varsity_runner(runner: Runner) -> bool:
 	# Returns true if added, false if team is full
 	if varsity_team.size() >= 5:
 		return false
-	varsity_team.append(runner_name)
+	# Register runner in registry
+	register_runner(runner)
+	# Set team assignment properties
+	runner.is_varsity = true
+	runner.team_index = varsity_team.size()
+	varsity_team.append(runner)
 	return true
 
-func add_jv_runner(runner_name: String) -> bool:
+func add_jv_runner(runner: Runner) -> bool:
 	# Returns true if added, false if JV is full
 	if jv_team.size() >= 2:
 		return false
-	jv_team.append(runner_name)
+	# Register runner in registry
+	register_runner(runner)
+	# Set team assignment properties
+	runner.is_varsity = false
+	runner.team_index = jv_team.size()
+	jv_team.append(runner)
 	return true
 
-func remove_varsity_runner(index: int) -> String:
-	# Remove runner at index, return runner name
+func remove_varsity_runner(index: int) -> Runner:
+	# Remove runner at index, return Runner object
 	if index >= 0 and index < varsity_team.size():
-		return varsity_team.pop_at(index)
-	return ""
+		var runner = varsity_team.pop_at(index)
+		# Update team assignment properties
+		runner.is_varsity = false
+		runner.team_index = -1
+		# Update indices for remaining runners
+		for i in range(index, varsity_team.size()):
+			varsity_team[i].team_index = i
+		return runner
+	return null
 
-func remove_jv_runner(index: int) -> String:
-	# Remove runner at index, return runner name
+func remove_jv_runner(index: int) -> Runner:
+	# Remove runner at index, return Runner object
 	if index >= 0 and index < jv_team.size():
-		return jv_team.pop_at(index)
-	return ""
+		var runner = jv_team.pop_at(index)
+		# Update team assignment properties
+		runner.is_varsity = false
+		runner.team_index = -1
+		# Update indices for remaining runners
+		for i in range(index, jv_team.size()):
+			jv_team[i].team_index = i
+		return runner
+	return null
 
-func replace_varsity_runner(index: int, new_runner: String) -> String:
-	# Replace runner at index, return old runner name
+func replace_varsity_runner(index: int, new_runner: Runner) -> Runner:
+	# Replace runner at index, return old Runner object
 	if index >= 0 and index < varsity_team.size():
 		var old_runner = varsity_team[index]
+		# Update old runner's team assignment
+		old_runner.is_varsity = false
+		old_runner.team_index = -1
+		# Register and set new runner's team assignment
+		register_runner(new_runner)
+		new_runner.is_varsity = true
+		new_runner.team_index = index
 		varsity_team[index] = new_runner
 		return old_runner
-	return ""
+	return null
 
-func replace_jv_runner(index: int, new_runner: String) -> String:
-	# Replace runner at index, return old runner name
+func replace_jv_runner(index: int, new_runner: Runner) -> Runner:
+	# Replace runner at index, return old Runner object
 	if index >= 0 and index < jv_team.size():
 		var old_runner = jv_team[index]
+		# Update old runner's team assignment
+		old_runner.is_varsity = false
+		old_runner.team_index = -1
+		# Register and set new runner's team assignment
+		register_runner(new_runner)
+		new_runner.is_varsity = false
+		new_runner.team_index = index
 		jv_team[index] = new_runner
 		return old_runner
-	return ""
+	return null
 
 func get_team_size() -> Dictionary:
 	return {
@@ -1139,8 +1651,16 @@ func swap_varsity_to_jv(varsity_index: int, jv_index: int) -> bool:
 	var varsity_runner = varsity_team[varsity_index]
 	var jv_runner = jv_team[jv_index]
 	
+	# Swap the runners
 	varsity_team[varsity_index] = jv_runner
 	jv_team[jv_index] = varsity_runner
+	
+	# Update team assignment properties
+	varsity_runner.is_varsity = false
+	varsity_runner.team_index = jv_index
+	jv_runner.is_varsity = true
+	jv_runner.team_index = varsity_index
+	
 	return true
 
 func promote_jv_to_varsity(jv_index: int, varsity_index: int) -> bool:
@@ -1153,8 +1673,16 @@ func promote_jv_to_varsity(jv_index: int, varsity_index: int) -> bool:
 	var jv_runner = jv_team[jv_index]
 	var varsity_runner = varsity_team[varsity_index]
 	
+	# Swap the runners
 	varsity_team[varsity_index] = jv_runner
 	jv_team[jv_index] = varsity_runner
+	
+	# Update team assignment properties
+	jv_runner.is_varsity = true
+	jv_runner.team_index = varsity_index
+	varsity_runner.is_varsity = false
+	varsity_runner.team_index = jv_index
+	
 	return true
 
 func demote_varsity_to_jv(varsity_index: int, jv_index: int) -> bool:
@@ -1269,8 +1797,9 @@ func get_total_power() -> int:
 
 # Calculate a runner's race performance score (lower = better finish)
 # Delegates to RaceLogic for consistent calculations with updated variance and difficulty scaling
-func calculate_runner_performance(runner_name: String, is_player: bool = true) -> float:
-	return RaceLogic.calculate_runner_performance(runner_name, is_player)
+# runner can be Runner object or String for backward compatibility
+func calculate_runner_performance(runner: Variant, is_player: bool = true) -> float:
+	return RaceLogic.calculate_runner_performance(runner, is_player)
 
 
 # Generate a single opponent team
@@ -1415,6 +1944,23 @@ func simulate_race() -> Dictionary:
 		RaceType.CHAMPIONSHIP:
 			won = player_placement <= 3  # Top 3
 	
+	# Apply post-race injury risk to all varsity runners
+	# Calculate race intensity based on race type and ante
+	var race_intensity = _calculate_race_intensity()
+	var injury_statuses: Dictionary = {}
+	
+	for runner in varsity_team:
+		# Apply race fatigue/injury risk
+		runner.apply_race_fatigue(race_intensity)
+		
+		# Store injury status for race results
+		var injury_status = runner.get_injury_status()
+		injury_statuses[runner.get_id()] = {
+			"meter": injury_status.meter,
+			"is_injured": injury_status.is_injured,
+			"severity": injury_status.severity
+		}
+	
 	# Restore global RNG state
 	randomize()
 	
@@ -1427,7 +1973,8 @@ func simulate_race() -> Dictionary:
 		"race_type": current_race_type,
 		"race_type_name": get_race_type_name(),
 		"total_teams": team_scores.size(),
-		"all_runners": all_runners  # For detailed display
+		"all_runners": all_runners,  # For detailed display
+		"injury_statuses": injury_statuses  # Post-race injury status for all runners
 	}
 
 # ============================================

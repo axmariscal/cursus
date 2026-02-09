@@ -108,7 +108,7 @@ func update_team_composition() -> void:
 	var all_around_types = ["Tempo Runner", "Freshman Walk-on", "All-Terrain Captain", "The Legend", "JV Legend"]
 	
 	for runner in GameManager.varsity_team:
-		var base_name = runner.split(":")[1].strip_edges() if ":" in runner else runner
+		var base_name = runner.name
 		if base_name in front_runner_types:
 			front_runner_count += 1
 		elif base_name in stayer_types:
@@ -119,7 +119,7 @@ func update_team_composition() -> void:
 			all_around_count += 1
 	
 	for runner in GameManager.jv_team:
-		var base_name = runner.split(":")[1].strip_edges() if ":" in runner else runner
+		var base_name = runner.name
 		if base_name in front_runner_types:
 			front_runner_count += 1
 		elif base_name in stayer_types:
@@ -313,15 +313,15 @@ func display_team_tray(card_interaction: CardInteraction, tooltip_manager: Toolt
 		container.mouse_filter = Control.MOUSE_FILTER_STOP
 		
 		if i < GameManager.varsity_team.size():
-			var runner_name = GameManager.varsity_team[i]
-			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
+			var runner = GameManager.varsity_team[i]
+			var base_name = runner.name
 			
 			# Get runner effect for hover functionality
-			var effect = GameManager.get_item_effect(runner_name, "team")
-			var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": true}
+			var effect = GameManager.get_item_effect(runner, "team")
+			var item_data = {"name": runner.display_name, "category": "team", "index": i, "is_varsity": true}
 			
 			# Try to load card image
-			var card_texture = get_card_texture_func.call(runner_name, "team")
+			var card_texture = get_card_texture_func.call(runner.display_name, "team")
 			if card_texture:
 				var texture_rect = TextureRect.new()
 				texture_rect.texture = card_texture
@@ -341,7 +341,7 @@ func display_team_tray(card_interaction: CardInteraction, tooltip_manager: Toolt
 			container.add_child(label)
 			
 			# Create tooltip
-			var tooltip = create_tooltip_func.call(runner_name, "team", effect, 0)  # No sell price in tray
+			var tooltip = create_tooltip_func.call(runner.display_name, "team", effect, 0)  # No sell price in tray
 			container.tooltip_text = tooltip
 			
 			# Connect hover events for stat deltas
@@ -380,15 +380,15 @@ func display_team_tray(card_interaction: CardInteraction, tooltip_manager: Toolt
 		container.mouse_filter = Control.MOUSE_FILTER_STOP
 		
 		if i < GameManager.jv_team.size():
-			var runner_name = GameManager.jv_team[i]
-			var base_name = runner_name.split(":")[1].strip_edges() if ":" in runner_name else runner_name
+			var runner = GameManager.jv_team[i]
+			var base_name = runner.name
 			
 			# Get runner effect for hover functionality
-			var effect = GameManager.get_item_effect(runner_name, "team")
-			var item_data = {"name": runner_name, "category": "team", "index": i, "is_varsity": false}
+			var effect = GameManager.get_item_effect(runner, "team")
+			var item_data = {"name": runner.display_name, "category": "team", "index": i, "is_varsity": false}
 			
 			# Try to load card image
-			var card_texture = get_card_texture_func.call(runner_name, "team")
+			var card_texture = get_card_texture_func.call(runner.display_name, "team")
 			if card_texture:
 				var texture_rect = TextureRect.new()
 				texture_rect.texture = card_texture
@@ -408,7 +408,7 @@ func display_team_tray(card_interaction: CardInteraction, tooltip_manager: Toolt
 			container.add_child(label)
 			
 			# Create tooltip
-			var tooltip = create_tooltip_func.call(runner_name, "team", effect, 0)  # No sell price in tray
+			var tooltip = create_tooltip_func.call(runner.display_name, "team", effect, 0)  # No sell price in tray
 			container.tooltip_text = tooltip
 			
 			# Connect hover events for stat deltas

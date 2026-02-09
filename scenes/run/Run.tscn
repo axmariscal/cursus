@@ -449,6 +449,12 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "VIEW TEAM"
 
+[node name="SaveRunButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "SAVE RUN"
+
 [node name="BackButton" type="Button" parent="UI/MainContainer/MainVBox/ContentBody/RightCol_Actions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)

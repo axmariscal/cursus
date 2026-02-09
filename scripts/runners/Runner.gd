@@ -49,6 +49,10 @@ var team_index: int = -1  # Index in varsity_team or jv_team array
 # Outstanding recruit flag (for D1/D2/D3)
 var is_outstanding_recruit: bool = false
 
+# Unique ID system
+var unique_id: int = -1
+static var next_id: int = 0
+
 # ============================================
 # CONSTRUCTOR
 # ============================================
@@ -56,6 +60,10 @@ var is_outstanding_recruit: bool = false
 func _init(runner_name: String = "", runner_display_name: String = ""):
 	name = runner_name
 	display_name = runner_display_name if runner_display_name != "" else "Runner: " + runner_name
+	
+	# Assign unique ID
+	unique_id = Runner.next_id
+	Runner.next_id += 1
 	
 	# Initialize stats from GameManager's get_item_effect
 	if runner_name != "":
@@ -242,6 +250,12 @@ func apply_training(workout_type: String, base_gain: int = 2) -> Dictionary:
 			# Recovery workout reduces injury, no stat gains
 			# This is handled separately in Training.gd, but we still track it here
 			injury_risk = -5.0 - (randf() * 5.0)  # Negative = recovery (5-10 points recovered)
+		"recovery_gold":
+			# Medical treatment - better recovery than basic recovery
+			injury_risk = -8.0 - (randf() * 7.0)  # Negative = recovery (8-15 points recovered)
+		"recovery_premium":
+			# Premium recovery - best recovery option
+			injury_risk = -12.0 - (randf() * 8.0)  # Negative = recovery (12-20 points recovered)
 		"intensive":
 			# Intensive training gives higher gains but much higher injury risk
 			gains.speed = int(base_gain * growth_potential.speed)
@@ -333,6 +347,22 @@ func recover(amount: float) -> void:
 	else:
 		_update_injury_debuffs()
 
+# Apply race fatigue/injury risk after completing a race
+# race_intensity: 0.0-1.0, where 1.0 is maximum intensity (championship race)
+func apply_race_fatigue(race_intensity: float = 0.5) -> void:
+	# Base injury risk from racing (scaled by intensity)
+	# More intense races (championships, qualifiers) have higher injury risk
+	var base_risk = 2.0 + (race_intensity * 3.0)  # 2-5 points base risk
+	
+	# Add randomness (races are unpredictable)
+	var random_factor = randf() * 2.0  # 0-2 points
+	
+	# Total injury risk
+	var total_risk = base_risk + random_factor
+	
+	# Apply injury risk
+	_increase_injury_meter(total_risk)
+
 # Get injury status for display
 func get_injury_status() -> Dictionary:
 	return {
@@ -365,6 +395,10 @@ func get_growth_score() -> float:
 	return (growth_potential.speed + growth_potential.endurance + 
 			growth_potential.stamina + growth_potential.power) / 4.0
 
+# Get unique ID
+func get_id() -> int:
+	return unique_id
+
 # Check if runner is ready for varsity (meets minimum stat requirements)
 func is_race_ready(min_total_stats: int = 50) -> bool:
 	return get_total_stats() >= min_total_stats
@@ -380,3 +414,75 @@ func get_display_string() -> String:
 		current_stats.power,
 		injury_meter
 	]
+
+# ============================================
+# SERIALIZATION
+# ============================================
+
+# Convert Runner to Dictionary for JSON serialization
+func to_dict() -> Dictionary:
+	return {
+		"name": name,
+		"display_name": display_name,
+		"draft_tier": draft_tier,
+		"base_stats": base_stats.duplicate(),
+		"current_stats": current_stats.duplicate(),
+		"growth_potential": growth_potential.duplicate(),
+		"injury_meter": injury_meter,
+		"injury_debuffs": injury_debuffs.duplicate(),
+		"is_injured": is_injured,
+		"training_history": training_history.duplicate(),
+		"total_training_sessions": total_training_sessions,
+		"is_varsity": is_varsity,
+		"team_index": team_index,
+		"is_outstanding_recruit": is_outstanding_recruit,
+		"unique_id": unique_id
+	}
+
+# Create Runner from Dictionary (static factory method)
+static func from_dict(data: Dictionary) -> Runner:
+	# Create runner with empty name to avoid _load_stats_from_name
+	# We'll load stats from the dictionary instead
+	var runner = Runner.new("", "")
+	
+	# Override the unique_id that was assigned in _init
+	# We need to restore the saved unique_id
+	var saved_id = data.get("unique_id", -1)
+	if saved_id >= 0:
+		# Temporarily decrement next_id since _init incremented it
+		Runner.next_id -= 1
+		runner.unique_id = saved_id
+		# Update next_id to ensure no conflicts with future runners
+		if saved_id >= Runner.next_id:
+			Runner.next_id = saved_id + 1
+	
+	# Set basic properties
+	runner.name = data.get("name", "")
+	runner.display_name = data.get("display_name", "")
+	runner.draft_tier = data.get("draft_tier", "")
+	
+	# Set stats
+	if data.has("base_stats"):
+		runner.base_stats = data.base_stats.duplicate()
+	if data.has("current_stats"):
+		runner.current_stats = data.current_stats.duplicate()
+	if data.has("growth_potential"):
+		runner.growth_potential = data.growth_potential.duplicate()
+	
+	# Set injury data
+	runner.injury_meter = data.get("injury_meter", 0.0)
+	if data.has("injury_debuffs"):
+		runner.injury_debuffs = data.injury_debuffs.duplicate()
+	runner.is_injured = data.get("is_injured", false)
+	
+	# Set training history
+	if data.has("training_history"):
+		runner.training_history = data.training_history.duplicate()
+	runner.total_training_sessions = data.get("total_training_sessions", 0)
+	
+	# Set team assignment
+	runner.is_varsity = data.get("is_varsity", false)
+	runner.team_index = data.get("team_index", -1)
+	runner.is_outstanding_recruit = data.get("is_outstanding_recruit", false)
+	
+	return runner

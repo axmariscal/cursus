@@ -61,6 +61,9 @@ func complete_race() -> Dictionary:
 	var training_points_earned = GameManager.calculate_training_points(race_result)
 	GameManager.earn_training_points(training_points_earned)
 	
+	# Permadeath: track win/loss streak (Phase 4.1)
+	GameManager.record_race_result(race_result.won)
+	
 	last_race_result = race_result
 	race_state = RaceState.COMPLETED
 	
@@ -109,11 +112,16 @@ func get_result_message(race_result: Dictionary) -> String:
 		for i in range(all_runners.size()):
 			var runner_data = all_runners[i]
 			if runner_data.get("team_index", 0) == -1:  # Player team
-				var runner_name = runner_data.get("name", "Unknown")
-				# Extract just the runner type name (remove "Runner: " prefix)
-				var display_name = runner_name
-				if ":" in runner_name:
-					display_name = runner_name.split(":")[1].strip_edges()
+				var runner_or_name = runner_data.get("name", "Unknown")
+				# Handle both Runner objects and String names (for backward compatibility)
+				var display_name: String
+				if runner_or_name is Runner:
+					display_name = runner_or_name.name
+				else:
+					# Legacy string format
+					display_name = runner_or_name as String
+					if ":" in display_name:
+						display_name = display_name.split(":")[1].strip_edges()
 				
 				player_finishes.append({
 					"position": i + 1,
@@ -148,6 +156,42 @@ func get_result_message(race_result: Dictionary) -> String:
 					var suffix = _get_position_suffix(pos)
 					result_message += "  %d%s place\n" % [pos, suffix]
 	result_message += "\n"
+	
+	# Show injury status after race
+	var injury_statuses = race_result.get("injury_statuses", {})
+	if injury_statuses.size() > 0:
+		var injured_runners: Array[Dictionary] = []
+		for runner_id in injury_statuses.keys():
+			var injury_data = injury_statuses[runner_id]
+			if injury_data.is_injured:
+				var runner = GameManager.get_runner_by_id(runner_id)
+				if runner != null:
+					injured_runners.append({
+						"name": runner.name,
+						"meter": injury_data.meter,
+						"severity": injury_data.severity
+					})
+		
+		if injured_runners.size() > 0:
+			result_message += "⚠️ Injuries:\n"
+			for injured in injured_runners:
+				var severity_icon = ""
+				match injured.severity:
+					"minor":
+						severity_icon = "⚠️"
+					"moderate":
+						severity_icon = "🔴"
+					"severe":
+						severity_icon = "🚨"
+					_:
+						severity_icon = "⚠️"
+				result_message += "  %s %s: %.1f%% (%s)\n" % [
+					severity_icon,
+					injured.name,
+					injured.meter,
+					injured.severity.capitalize()
+				]
+			result_message += "\n"
 	
 	# Ante progression
 	var completed_ante = race_result.get("completed_ante", GameManager.current_ante)

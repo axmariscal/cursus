@@ -20,8 +20,8 @@ func _display_team() -> void:
 		
 		if i < GameManager.varsity_team.size():
 			# Show runner info with management buttons
-			var runner_string = GameManager.varsity_team[i]
-			var runner_label = _create_runner_label_with_training("Slot %d: %s" % [i + 1, runner_string], runner_string)
+			var runner = GameManager.varsity_team[i]
+			var runner_label = _create_runner_label_with_training("Slot %d: %s" % [i + 1, runner.display_name], runner)
 			slot_container.add_child(runner_label)
 			
 			# Add management buttons
@@ -50,8 +50,8 @@ func _display_team() -> void:
 		
 		if i < GameManager.jv_team.size():
 			# Show runner info with management buttons
-			var runner_string = GameManager.jv_team[i]
-			var runner_label = _create_runner_label_with_training("JV Slot %d: %s" % [i + 1, runner_string], runner_string)
+			var runner = GameManager.jv_team[i]
+			var runner_label = _create_runner_label_with_training("JV Slot %d: %s" % [i + 1, runner.display_name], runner)
 			slot_container.add_child(runner_label)
 			
 			# Add management buttons
@@ -94,21 +94,18 @@ func _create_runner_label(text: String, effect: Dictionary) -> Label:
 	label.horizontal_alignment = 1
 	return label
 
-func _create_runner_label_with_training(text: String, runner_string: String) -> VBoxContainer:
+func _create_runner_label_with_training(text: String, runner: Runner) -> VBoxContainer:
 	# Create a container for all runner information
 	var container = VBoxContainer.new()
 	container.add_theme_constant_override("separation", 2)
 	
-	# Create Runner object to get training data
-	var runner = Runner.from_string(runner_string)
+	# Get runner stats (runner is already a Runner object)
 	var stats = runner.get_display_stats()
 	var injury_status = runner.get_injury_status()
 	
 	# Main runner name and base info
 	var main_label = Label.new()
-	var runner_name = runner_string
-	if ":" in runner_string:
-		runner_name = runner_string.split(":")[1].strip_edges()
+	var runner_name = runner.name
 	main_label.text = text
 	main_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_label.add_theme_font_size_override("font_size", 14)
@@ -191,7 +188,8 @@ func _on_promote_jv(jv_index: int) -> void:
 		if GameManager.varsity_team.size() < 5:
 			# Move to empty varsity slot
 			var runner = GameManager.remove_jv_runner(jv_index)
-			GameManager.add_varsity_runner(runner)
+			if runner != null:
+				GameManager.add_varsity_runner(runner)
 		elif GameManager.varsity_team.size() > 0:
 			# Swap with first varsity runner
 			GameManager.swap_varsity_to_jv(0, jv_index)

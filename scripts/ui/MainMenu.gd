@@ -15,6 +15,13 @@ var scale_factor: float = 1.0
 @onready var continue_button: Button = %ContinueButton
 @onready var options_button: Button = %OptionsButton
 @onready var collection_button: Button = %CollectionButton
+@onready var ui_canvas_layer: CanvasLayer = $UI
+
+# Save slot dialog references (will be created dynamically)
+var save_slot_dialog: Panel = null
+var save_slot_overlay: ColorRect = null
+var save_slot_buttons: Array[Button] = []
+var save_slot_labels: Array[Label] = []
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -145,19 +152,28 @@ func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/core/DivisionSelectScene.tscn")
 
 func _on_continue_pressed() -> void:
-	# Continue existing run if one is active
-	if GameManager.run_active:
-		get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
-	else:
-		print("No active run to continue")
+	# Show save slot selection dialog
+	_show_save_slot_dialog()
 
 func _update_continue_button() -> void:
-	if not GameManager.run_active:
+	# Enable continue button if there's an active run OR if any save slots exist
+	var has_saves = false
+	for slot in range(1, GameManager.MAX_SAVE_SLOTS + 1):
+		if GameManager.save_slot_exists(slot):
+			has_saves = true
+			break
+	
+	if not GameManager.run_active and not has_saves:
 		continue_button.disabled = true
 		continue_button.modulate = Color(0.7, 0.7, 0.7, 1.0)  # Dim the button
+		continue_button.text = "CONTINUE"
 	else:
 		continue_button.disabled = false
 		continue_button.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Full opacity
+		if GameManager.run_active:
+			continue_button.text = "CONTINUE"
+		else:
+			continue_button.text = "LOAD RUN"
 
 func _on_options_pressed() -> void:
 	# TODO: Implement options menu
@@ -166,3 +182,213 @@ func _on_options_pressed() -> void:
 func _on_collection_pressed() -> void:
 	# TODO: Implement collection view
 	print("Collection button pressed - not yet implemented")
+
+func _show_save_slot_dialog() -> void:
+	# Create dialog if it doesn't exist
+	if save_slot_dialog == null:
+		_create_save_slot_dialog()
+	
+	# Update dialog position (in case viewport size changed)
+	_update_dialog_position()
+	
+	# Update slot information
+	_update_save_slot_display()
+	
+	# Show overlay and dialog
+	if save_slot_overlay:
+		save_slot_overlay.visible = true
+	save_slot_dialog.visible = true
+
+func _update_dialog_position() -> void:
+	if save_slot_dialog == null:
+		return
+	
+	# Get the size of the MainMenu control (which should fill the viewport)
+	var menu_size = size
+	var dialog_width = min(600, menu_size.x * 0.8)
+	var dialog_height = min(500, menu_size.y * 0.7)
+	
+	# Use full rect anchors and position manually
+	save_slot_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
+	save_slot_dialog.offset_left = (menu_size.x - dialog_width) / 2
+	save_slot_dialog.offset_top = (menu_size.y - dialog_height) / 2
+	save_slot_dialog.offset_right = -(menu_size.x - dialog_width) / 2
+	save_slot_dialog.offset_bottom = -(menu_size.y - dialog_height) / 2
+	save_slot_dialog.custom_minimum_size = Vector2(dialog_width, dialog_height)
+
+func _create_save_slot_dialog() -> void:
+	# Create a new CanvasLayer specifically for the dialog with a higher layer value
+	# This ensures it renders on top of the existing UI CanvasLayer
+	var dialog_layer = CanvasLayer.new()
+	dialog_layer.name = "DialogLayer"
+	dialog_layer.layer = 10  # Higher than default UI layer (which is 0)
+	add_child(dialog_layer)
+	
+	# Create a container Control inside the CanvasLayer to hold overlay and dialog
+	var dialog_container = Control.new()
+	dialog_container.name = "DialogContainer"
+	dialog_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dialog_layer.add_child(dialog_container)
+	
+	# Create overlay background (semi-transparent black)
+	save_slot_overlay = ColorRect.new()
+	save_slot_overlay.name = "SaveSlotOverlay"
+	save_slot_overlay.color = Color(0, 0, 0, 0.75)  # Semi-transparent black
+	save_slot_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	save_slot_overlay.mouse_filter = Control.MOUSE_FILTER_STOP  # Block clicks behind
+	dialog_container.add_child(save_slot_overlay)
+	
+	# Create main dialog panel
+	save_slot_dialog = Panel.new()
+	save_slot_dialog.name = "SaveSlotDialog"
+	save_slot_dialog.mouse_filter = Control.MOUSE_FILTER_STOP  # Block clicks behind
+	dialog_container.add_child(save_slot_dialog)
+	
+	# Style dialog - make it more opaque and visible
+	var dialog_style = StyleBoxFlat.new()
+	dialog_style.bg_color = Color(0.15, 0.15, 0.2, 1.0)  # More opaque, slightly blue-tinted
+	dialog_style.corner_radius_top_left = 10
+	dialog_style.corner_radius_top_right = 10
+	dialog_style.corner_radius_bottom_right = 10
+	dialog_style.corner_radius_bottom_left = 10
+	dialog_style.border_color = Color(0.4, 0.5, 0.7, 1.0)  # Light blue border
+	dialog_style.border_width_left = 2
+	dialog_style.border_width_top = 2
+	dialog_style.border_width_right = 2
+	dialog_style.border_width_bottom = 2
+	save_slot_dialog.add_theme_stylebox_override("panel", dialog_style)
+	
+	# Ensure dialog appears above overlay (add after overlay)
+	save_slot_dialog.z_index = 1
+	
+	# Initial dialog size (will be updated when shown)
+	save_slot_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
+	save_slot_dialog.custom_minimum_size = Vector2(600, 500)
+	
+	# Create container
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 15)
+	save_slot_dialog.add_child(vbox)
+	
+	# Title
+	var title = Label.new()
+	title.text = "LOAD RUN"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	vbox.add_child(title)
+	
+	# Instructions
+	var instructions = Label.new()
+	instructions.text = "Select a save slot to load:"
+	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instructions.add_theme_font_size_override("font_size", 18)
+	instructions.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 1))
+	vbox.add_child(instructions)
+	
+	# Create slot buttons
+	for slot in range(1, GameManager.MAX_SAVE_SLOTS + 1):
+		var slot_container = VBoxContainer.new()
+		slot_container.add_theme_constant_override("separation", 5)
+		
+		var slot_button = Button.new()
+		slot_button.custom_minimum_size = Vector2(0, 80)
+		slot_button.name = "SlotButton" + str(slot)
+		
+		# Style button
+		var button_style = StyleBoxFlat.new()
+		button_style.bg_color = Color(0.3, 0.5, 0.7, 1.0)
+		button_style.corner_radius_top_left = 5
+		button_style.corner_radius_top_right = 5
+		button_style.corner_radius_bottom_right = 5
+		button_style.corner_radius_bottom_left = 5
+		slot_button.add_theme_stylebox_override("normal", button_style)
+		
+		var hover_style = button_style.duplicate()
+		hover_style.bg_color = Color(0.4, 0.6, 0.8, 1.0)
+		slot_button.add_theme_stylebox_override("hover", hover_style)
+		
+		slot_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+		slot_button.add_theme_font_size_override("font_size", 16)
+		
+		# Connect signal
+		slot_button.pressed.connect(_on_save_slot_selected.bind(slot))
+		
+		# Create label for slot info
+		var slot_label = Label.new()
+		slot_label.name = "SlotLabel" + str(slot)
+		slot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 14)
+		slot_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
+		slot_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		
+		slot_container.add_child(slot_button)
+		slot_container.add_child(slot_label)
+		vbox.add_child(slot_container)
+		
+		save_slot_buttons.append(slot_button)
+		save_slot_labels.append(slot_label)
+	
+	# Cancel button
+	var cancel_button = Button.new()
+	cancel_button.text = "CANCEL"
+	cancel_button.custom_minimum_size = Vector2(0, 50)
+	cancel_button.pressed.connect(_on_cancel_save_slot_dialog)
+	
+	var cancel_style = StyleBoxFlat.new()
+	cancel_style.bg_color = Color(0.6, 0.2, 0.2, 1.0)
+	cancel_style.corner_radius_top_left = 5
+	cancel_style.corner_radius_top_right = 5
+	cancel_style.corner_radius_bottom_right = 5
+	cancel_style.corner_radius_bottom_left = 5
+	cancel_button.add_theme_stylebox_override("normal", cancel_style)
+	cancel_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	
+	vbox.add_child(cancel_button)
+	
+	# Initially hide overlay and dialog
+	save_slot_overlay.visible = false
+	save_slot_dialog.visible = false
+
+func _update_save_slot_display() -> void:
+	for i in range(GameManager.MAX_SAVE_SLOTS):
+		var slot = i + 1
+		var metadata = GameManager.get_save_slot_metadata(slot)
+		var button = save_slot_buttons[i]
+		var label = save_slot_labels[i]
+		
+		if metadata.is_empty() or not metadata.get("exists", false):
+			# Empty slot
+			button.text = "Slot %d - Empty" % slot
+			label.text = "No save file"
+			button.disabled = true
+			button.modulate = Color(0.5, 0.5, 0.5, 1.0)
+		else:
+			# Populated slot
+			var division = metadata.get("division", "Unknown")
+			var ante = metadata.get("ante", 1)
+			var gold = metadata.get("gold", 0)
+			var date = metadata.get("date_string", "")
+			
+			button.text = "Slot %d - %s" % [slot, division]
+			label.text = "Ante %d | %d Gold | %s" % [ante, gold, date]
+			button.disabled = false
+			button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+func _on_save_slot_selected(slot: int) -> void:
+	# Load the selected save slot
+	if GameManager.load_run(slot):
+		# Successfully loaded - navigate to Run scene
+		if save_slot_overlay:
+			save_slot_overlay.visible = false
+		save_slot_dialog.visible = false
+		get_tree().change_scene_to_file("res://scenes/run/Run.tscn")
+	else:
+		# Failed to load - show error (could add error label to dialog)
+		print("Failed to load save slot ", slot)
+
+func _on_cancel_save_slot_dialog() -> void:
+	if save_slot_overlay:
+		save_slot_overlay.visible = false
+	save_slot_dialog.visible = false

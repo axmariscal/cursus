@@ -304,9 +304,9 @@ static func _simulate_single_race() -> Dictionary:
 
 # Calculate a runner's race performance score (lower = better finish)
 # Updated with 15-30% variance and steeper difficulty scaling
-static func calculate_runner_performance(runner_name: String, is_player: bool = true) -> float:
-	# Get base runner stats
-	var runner_effect = GameManager.get_item_effect(runner_name, "team")
+static func calculate_runner_performance(runner: Variant, is_player: bool = true) -> float:
+	# Get base runner stats (runner can be Runner object or String for backward compatibility)
+	var runner_effect = GameManager.get_item_effect(runner, "team")
 	
 	# For player runners, include all bonuses (equipment, boosts, deck cards)
 	var speed = runner_effect.speed
@@ -408,8 +408,9 @@ static func calculate_runner_performance(runner_name: String, is_player: bool = 
 
 # Calculate the total strength of a runner based on their stats
 # For player runners, includes all bonuses (equipment, boosts, deck)
-static func calculate_runner_strength(runner_name: String, is_player: bool = true) -> float:
-	var runner_effect = GameManager.get_item_effect(runner_name, "team")
+static func calculate_runner_strength(runner: Variant, is_player: bool = true) -> float:
+	# runner can be Runner object or String for backward compatibility
+	var runner_effect = GameManager.get_item_effect(runner, "team")
 	
 	# For player runners, include all bonuses (equipment, boosts, deck cards)
 	var speed = runner_effect.speed
