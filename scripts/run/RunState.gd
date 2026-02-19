@@ -116,7 +116,7 @@ func get_result_message(race_result: Dictionary) -> String:
 				# Handle both Runner objects and String names (for backward compatibility)
 				var display_name: String
 				if runner_or_name is Runner:
-					display_name = runner_or_name.name
+					display_name = runner_or_name.display_name
 				else:
 					# Legacy string format
 					display_name = runner_or_name as String
@@ -167,7 +167,7 @@ func get_result_message(race_result: Dictionary) -> String:
 				var runner = GameManager.get_runner_by_id(runner_id)
 				if runner != null:
 					injured_runners.append({
-						"name": runner.name,
+						"name": runner.display_name,
 						"meter": injury_data.meter,
 						"severity": injury_data.severity
 					})

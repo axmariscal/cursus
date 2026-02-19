@@ -456,15 +456,15 @@ func _restore_team_card_selection(card_interaction: CardInteraction, get_sell_pr
 			var container = containers[target_index]
 			# Check if container has content (not empty slot)
 			if container.get_child_count() > 1:  # More than just the background ColorRect
-				# Recreate item_data to match
-				var runner_name = ""
+				# Recreate item_data with name as string (display name) for tooltips/sell
+				var runner: Runner = null
 				if is_varsity and index < GameManager.varsity_team.size():
-					runner_name = GameManager.varsity_team[index]
+					runner = GameManager.varsity_team[index]
 				elif not is_varsity and index < GameManager.jv_team.size():
-					runner_name = GameManager.jv_team[index]
+					runner = GameManager.jv_team[index]
 				
-				if runner_name != "":
-					var item_data = {"name": runner_name, "category": "team", "index": index, "is_varsity": is_varsity}
+				if runner != null:
+					var item_data = {"name": runner.display_name, "category": "team", "index": index, "is_varsity": is_varsity}
 					# Restore selection and show sell button
 					card_interaction.selected_team_card = container
 					card_interaction.selected_team_card_data = item_data
