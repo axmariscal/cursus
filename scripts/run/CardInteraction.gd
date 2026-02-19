@@ -257,15 +257,15 @@ func restore_team_card_selection(team_tray: HFlowContainer, get_item_data_func: 
 			var container = containers[target_index]
 			# Check if container has content (not empty slot)
 			if container.get_child_count() > 1:  # More than just the background ColorRect
-				# Recreate item_data to match
-				var runner_name = ""
+				# Recreate item_data with name as string (display name) for tooltips/sell
+				var runner: Runner = null
 				if is_varsity and index < GameManager.varsity_team.size():
-					runner_name = GameManager.varsity_team[index]
+					runner = GameManager.varsity_team[index]
 				elif not is_varsity and index < GameManager.jv_team.size():
-					runner_name = GameManager.jv_team[index]
+					runner = GameManager.jv_team[index]
 				
-				if runner_name != "":
-					var item_data = get_item_data_func.call(runner_name, index, is_varsity)
+				if runner != null:
+					var item_data = get_item_data_func.call(runner.display_name, index, is_varsity)
 					# Restore selection without triggering sell button (just visual)
 					selected_team_card = container
 					selected_team_card_data = item_data
